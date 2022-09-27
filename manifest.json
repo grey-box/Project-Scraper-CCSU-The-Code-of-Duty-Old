@@ -1,0 +1,35 @@
+{
+	"name": "Grey-box Web Scraper",
+	"description": "Download websites",
+	"version": "1.0",
+	"manifest_version": 3,
+
+	"permissions": [
+		"storage",
+		"downloads",
+		"contextMenus",
+		"declarativeNetRequest"
+	],
+
+	"host_permissions": [
+		"<all_urls>"
+	],
+
+	"declarative_net_request": {
+		"rule_resources": [
+			{
+				"id": "cors_ruleset",
+				"enabled": true,
+				"path": "corsrules.json"
+			}
+		]
+	},
+
+	"action": {
+		"default_popup": "popup.html"
+	},
+
+	"background": {
+		"service_worker": "js/background.js"
+	}
+}
