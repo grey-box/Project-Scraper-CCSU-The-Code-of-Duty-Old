@@ -28,21 +28,43 @@ urlform.addEventListener("submit", (event) => {
 
   // JQuery used to grab html from the url into response
   $.get(url, function (response) {
-    // html = response
 
-    html = response.replace(/<div id="siteSub" class="noprint">[\s|\S]*?<\/div>/, " ");
+    // Retrieve the link address from webpage for css
+    cssLink = response
+      .match(/"\/w((?:\\.|[^"\\])*)"/)[0]
+      .replace(/^"(.*)"$/, "$1")
+      .replace(/amp; *?/g, "");
 
-    // the response is converted into a blob to be converted into
-    // an object url
-    var blob = new Blob([html], { type: "text/html" });
-    objURL = URL.createObjectURL(blob);
+    // Use css link address to retrieve css as text
+    $.ajax({
+      url: "https://en.wikipedia.org" + cssLink,
+      dataType: "text",
+      success: function (cssText) {
 
-    // Download the url object
-    chrome.downloads.download({
-      url: objURL,
-      filename: "file1.html",
-      saveAs: true,
+        // Create css element for <head></head>
+        cssElement = "<style>" + cssText + "</style>"
+        
+        // Replace previous link element with new css element
+        html = response.replace(
+          /<link rel="stylesheet" href="[\s|\S]*?">/,
+          cssElement
+        );
+        
+        // the response is converted into a blob to be converted into
+        // an object url
+        var blob = new Blob([html], { type: "text/html" });
+        objURL = URL.createObjectURL(blob);
+
+        // Download the url object
+        chrome.downloads.download({
+          url: objURL,
+          filename: "file1.html",
+          saveAs: true,
+        });
+        // console.log(cssText);
+      },
     });
+    // console.log("https://en.wikipedia.org" + cssLink)
   });
 
   event.preventDefault();
