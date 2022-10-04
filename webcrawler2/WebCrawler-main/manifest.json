@@ -1,0 +1,51 @@
+{
+	"name": "Grey-box Web Scraper",
+	"description": "Download websites",
+	"version": "1.0",
+	"manifest_version": 3,
+
+	"permissions": [
+		"tabs",
+		"storage",
+		"downloads",
+		"contextMenus",
+		"declarativeNetRequest",
+		"scripting",
+		"activeTab"
+	],
+	"icons": {
+		"128": "images/get_started128.png",
+		"48": "images/get_started48.png",
+		"16": "images/get_started16.png"
+	  },
+	  "action": {
+		"default_icon": "images/get_started16.png",
+		"default_title": "WebScraper",
+		"default_popup": "popup.html"
+	  },
+	"host_permissions": [
+		"<all_urls>"
+	],
+
+	"declarative_net_request": {
+		"rule_resources": [
+			{
+				"id": "cors_ruleset",
+				"enabled": true,
+				"path": "corsrules.json"
+			}
+		]
+	},
+
+	"background": {
+		"service_worker": "js/background.js"
+	},
+
+	"content_scripts": [
+		{
+		  "matches": ["<all_urls>"],
+		  "js": ["js/jquery-3.6.1.min.js"],
+		  "run_at":"document_idle"
+		}
+	  ]
+}

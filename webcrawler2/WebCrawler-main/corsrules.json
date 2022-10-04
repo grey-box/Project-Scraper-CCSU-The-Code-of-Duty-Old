@@ -1,0 +1,14 @@
+[
+	{
+		"id": 1,
+		"priority": 1,
+		"action": {
+			"type": "modifyHeaders",
+			"responseHeaders": [
+				{ "header": "Content-Security-Policy", "operation": "remove" },
+				{ "header": "X-Requested-With", "operation": "append", "value": "" }
+			]
+		},
+		"condition": { "urlfilter": "*://*/*", "resourceTypes": ["main_frame", "xmlhttprequest"] }
+	}
+]
