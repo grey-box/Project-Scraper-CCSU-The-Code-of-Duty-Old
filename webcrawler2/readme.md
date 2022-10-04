@@ -6,7 +6,7 @@ https://github.com/AndreyGermanov/image_grabber
 
 It achieves the methods of grabbing images and sending all images urls to a new page
 
-## About WebCrawler project (In process)
+## About the uploaded files (Web Scraper in process)
 
 In this project files, when user clicks download button, it grabs images urls, and replaces them to base64, and sends base64 to a new page 
 
