@@ -53,7 +53,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
       let css = [];
       let cssLinks = [];
-      let html = response;
+      html = response;
 
       // Using JQuery to make an array of link tags with rel = stylesheet
       linkElements = $(html).filter("link[rel=stylesheet]");
@@ -75,7 +75,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       });
 
       // For every CSS address gets its CSS and append to HTML if any
-      if (cssLinks > 0) {
+      if (cssLinks.length > 0) {
         cssLinks.forEach(function (cssLink, i) {
           // Clean up CSS link address
           //cssLink = link.replace(/amp; *?/g, "");
