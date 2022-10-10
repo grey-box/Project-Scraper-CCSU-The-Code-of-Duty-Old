@@ -1,5 +1,5 @@
 ## Web Scraper
-### Images Grabing
+### Images Grabbing
 
 ### Instructions
 After clicking download button, wait for about 15 seconds to save the page
