@@ -33,9 +33,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // let url = urlform.url.value;
 
     let html = null;
+    let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
+    let css = [];
+    let cssLinks = [];
 
     // Function to download the html retrieved from jquery
-    function download() {
+    function download(html) {
       // Convert html into objectURL to use chrome.downloads
       let blob = new Blob([html], { type: "text/html" });
       objURL = URL.createObjectURL(blob);
@@ -47,19 +50,18 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       });
     }
 
-    // JQuery used to grab HTML from the url => response
-    $.get(url, function (response) {
-      // RegEx to grab the hostname of the URL
-      let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
-      let css = [];
-      let cssLinks = [];
-      html = response;
+    // Asynchronous function to get data from a URL
+    let getData = async (url) => {
+      console.log("getData:", "Getting data from URL");
+      return $.get(url);
+    };
 
-      // Using JQuery to make an array of link tags with rel = stylesheet
-      linkElements = $(html).filter("link[rel=stylesheet]");
+    // Function to grab the <link> tags with the attribute = stylesheet from
+    // html and push them into cssLinks array
+    let getCSSLinks = (html) => {
+      PARSEDHTML = $.parseHTML(html);
+      linkElements = $(PARSEDHTML).filter("link[rel=stylesheet]");
       linkElements.each(function () {
-        //console.log($(this).prop("outerHTML"));
-
         // Create a dummy element to transfer <link> tag href to an <a> tag
         // so that JQuery can identify its protocol, hostname, and pathname etc.
         let element = document.createElement("a");
@@ -71,45 +73,74 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (element.toString().search(chrome.runtime.id) >= 1) {
           element = element.toString().replace(chrome.runtime.id, hostname);
         }
+
+        console.log("getCSSLinks:", "Pushing");
         cssLinks.push(element.toString());
       });
+    };
 
-      // For every CSS address gets its CSS and append to HTML if any
-      if (cssLinks.length > 0) {
-        cssLinks.forEach(function (cssLink, i) {
-          // Clean up CSS link address
-          //cssLink = link.replace(/amp; *?/g, "");
+    // Asynchronous function to retrieve CSS from links in the cssLinks array
+    let getCSS = async (html) => {
+      for (let index = 0; index < cssLinks.length; index++) {
+        try {
+          // Waits for the function to fulfil promise then set data to cssText
+          let cssText = await getData(cssLinks[index]);
 
-          $.get({
-            url: cssLink,
-            dataType: "text",
-            error: function () {
-              // If the link to retrieve CSS returns error then assign nothing
-              // to its index value in css array
-              css[i] = "";
-            },
-            success: function (cssText) {
-              // Create css element for <head> tag and push into array
-              cssElement = "<style>" + cssText + "</style> ";
-              css[i] = cssElement;
+          // Wrap data into <sytle> tags to append to html
+          cssElement = "<style>" + cssText + "</style> ";
 
-              if (css.length == cssLinks.length) {
-                linkElements.each(function (index) {
-                  //Replace previous <link> tag with new css <style> tag
-                  html = html.replace(
-                    /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
-                    css[index]
-                  );
-                });
-                download();
-              }
-            },
-          });
-        });
-      } else {
-        download();
+          console.log("getCSS (try):", "Assigning");
+          css[index] = cssElement;
+        } catch (err) {
+          console.log(err);
+          css[index] = "";
+        }
       }
-    });
+    };
+
+    // Function to replace components within HTML with CSS retrieved
+    let replaceCSS = (html) => {
+      cssLinks.forEach((cssLink, index) => {
+        //Replace previous <link> tag with new css <style> tag
+        console.log("replaceCSS:", "Replacing");
+        html = html.replace(
+          /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
+          css[index]
+        );
+      });
+    };
+
+    // Main Asynchronous function that initiates the scraping process
+    const scrape = async (url) => {
+      try {
+        // Wait for function to fulfill promise then set HTML data to
+        // variable
+        html = await getData(url);
+
+        // Initiate function to get CSS links
+        getCSSLinks(html);
+
+        // For every CSS link gets its CSS and append to HTML if any
+        if (cssLinks.length > 0) {
+          try {
+            await getCSS(html);
+
+            replaceCSS(html);
+
+            console.log("DOWNLOADING");
+            download(html);
+          } catch (err) {
+            console.log(err);
+          }
+        } else {
+          download(html);
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    scrape(url);
 
     event.preventDefault();
   });
