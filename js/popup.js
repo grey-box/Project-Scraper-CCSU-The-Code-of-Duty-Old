@@ -86,6 +86,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           // Waits for the function to fulfil promise then set data to cssText
           let cssText = await getData(cssLinks[index]);
 
+          //console.log(cssText)
+
           // Wrap data into <sytle> tags to append to html
           cssElement = "<style>" + cssText + "</style> ";
 
@@ -99,7 +101,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     };
 
     // Function to replace components within HTML with CSS retrieved
-    let replaceCSS = (html) => {
+    let replaceCSS = () => {
+      //console.log(css)
       cssLinks.forEach((cssLink, index) => {
         //Replace previous <link> tag with new css <style> tag
         console.log("replaceCSS:", "Replacing");
@@ -125,7 +128,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           try {
             await getCSS(html);
 
-            replaceCSS(html);
+            replaceCSS();
 
             console.log("DOWNLOADING");
             download(html);
