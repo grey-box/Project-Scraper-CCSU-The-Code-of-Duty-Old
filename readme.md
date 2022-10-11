@@ -8,7 +8,7 @@ using set time out: After clicking download button, wait for about 15 seconds to
 ##### outcomes: 
 some images are shown, some images are in the wrong locations 
 
-#### version 2.0 (updated):
+#### version 2.0 (updated by 10/10/22):
 async await<br>  (based on merging branch)
 ##### something new:
 
