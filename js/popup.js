@@ -36,6 +36,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
     let css = [];
     let cssLinks = [];
+    let imgLinks = []; //length:20
+    let base64_array = []; //18
 
     // Function to download the html retrieved from jquery
     function download(html) {
@@ -113,12 +115,70 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       });
     };
 
+    let converToBase64 = async () => {
+      for (let i = 0; i < imgLinks.length - 2; i++) {
+        let img = await fetch(imgLinks[i]);
+
+        console.log(img);
+
+        let test = await img.blob();
+
+        console.log(test);
+
+        const reader = new FileReader();
+        reader.onloadend = function () {
+          base64_array.push(reader.result);
+        };
+        reader.readAsDataURL(new Blob([test], { type: test.type }));
+      }
+    };
+
     // Main Asynchronous function that initiates the scraping process
     const scrape = async (url) => {
       try {
         // Wait for function to fulfill promise then set HTML data to
         // variable
         html = await getData(url);
+
+        console.log("parsing HTML");
+        testParse = $.parseHTML(html);
+        let testImageElements = $(testParse).find("img");
+
+        console.log(testImageElements);
+
+        testImageElements.each(function () {
+          let src = $(this).attr("src");
+          let srcset = $(this).attr("srcset");
+
+          //console.log(src)
+
+          if (src.toString().search("https") == -1) {
+            console.log(src.toString().search("https"));
+            console.log(src);
+            src = "https:" + src;
+            console.log(src);
+          }
+
+          imgLinks.push(src);
+        });
+
+        //reg ex: get src and srcset
+        const reg1 = /(?<=img.*?src=)(".*?[jpg|png]")/gm;
+        const reg2 = /(?<=img.*?srcset=)(".*?[jpg|png|JPG] 2x")/gm;
+        //replace
+        const length_reg1 = html.match(reg1).length; //20
+        const length_reg2 = html.match(reg2).length; //20: including /static/images
+
+        console.log(imgLinks);
+
+        await converToBase64();
+
+        console.log(base64_array);
+
+        base64_array.forEach((each, index) => {
+          console.log("For Each:", "Replacing image");
+          html = html.replace(html.match(reg1)[index], '"' + each + '"');
+        });
 
         // Initiate function to get CSS links
         getCSSLinks(html);
