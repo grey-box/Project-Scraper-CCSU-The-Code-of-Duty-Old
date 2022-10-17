@@ -15,14 +15,15 @@
 <body class="container py-2 px-3 bg-light">
 	<h1 class="text-center">Grey-Box Web Downloader</h1>
 
+	<input type="file" name="file" id="file" />
 	<form id="url-form" class="row row-cols-lg-auto g-3 align-items-center" action="#">
 		<div class="col-12 input-group-sm">
-			<label for="url">Starting URL</label>
+			<label>Starting URL</label>
 			<input type="url" name="url" class="form-control" placeholder="Enter URL">
 		</div>
 
 		<div class="col-12 input-group-sm">
-			<label for="depth">Depth</label>
+			<label>Depth</label>
 			<input type="number" name="depth" min="0" class="form-control" placeholder="Enter Depth">
 		</div>
 
@@ -36,7 +37,7 @@
 	<form id="option-form" class="row row-cols-lg-auto g-3 align-items-center" action="#">
 		<div class="col-12">
 			<div class="form-check">
-				<label class="form-check-label" for="aszip">
+				<label class="form-check-label">
 					<input class="form-check-input" name="aszip" type="checkbox">
 					Download as ZIP file
 				</label>
@@ -45,7 +46,7 @@
 
 		<div class="col-12">
 			<div class="form-check">
-				<label class="form-check-label" for="corsbypass">
+				<label class="form-check-label">
 					<input class="form-check-input" name="corsbypass" type="checkbox">
 					Bypass CORS
 				</label>
@@ -55,9 +56,15 @@
 
 	<!-- Bootstrap JS -->
 	<script src="js/bootstrap.bundle.min.js"></script>
+	<script src="js/jquery-3.6.1.min.js"></script>
+	<script src="js/jszip.min.js"></script>
+	<script src="js/FileSaver.min.js"></script>
+	<script src="js/jszip-utils.js"></script>
 
 	<!-- Popup JS -->
 	<script defer src="js/popup.js"></script>
+
+
 </body>
 
 </html>
