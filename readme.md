@@ -16,4 +16,4 @@ In this code:
 ``` javascript
 zip.file(each.substr(each.lastIndexOf('/') + 1)+".html",getData(each))     //getData(url): return $.get(url)
 ```
-Before using zip.file() the html, replace the html src to "./folder_name/image_name", and delete srcset
+Before using zip.file() the html, replace the html img src to "./folder_name/image_name", and delete srcset
