@@ -81,6 +81,22 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       });
     };
 
+      // Find all hyperlink
+      var links = html.querySelectorAll("a");
+      // create an empty array
+      var urls = []
+      for (var i=0; i<links.length; i++){
+      // given name to different item
+      var nametext = links[i].textContent;
+      var cleantext = nametext.replace(/\s+/g, ' ').trim();
+      var cleanlink = links[i].href;
+      // put name and link to the array
+      urls.push([cleantext,cleanlink]);
+      };
+      // print the name and link to the console
+      console.log(urls);
+    
+
     // Asynchronous function to retrieve CSS from links in the cssLinks array
     let getCSS = async (html) => {
       for (let index = 0; index < cssLinks.length; index++) {
