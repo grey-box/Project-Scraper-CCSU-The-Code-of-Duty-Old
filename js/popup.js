@@ -163,11 +163,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         });
 
         //reg ex: get src and srcset
-        const reg1 = /(?<=img.*?src=)(".*?[jpg|png]")/gm;
-        const reg2 = /(?<=img.*?srcset=)(".*?[jpg|png|JPG] 2x")/gm;
+        const reg1 = /(?<=img.*?src=)(".*?")/gm;
+        // const reg2 = /(?<=img.*?srcset=)(".*?[jpg|png|JPG] 2x")/gm;
         //replace
-        const length_reg1 = html.match(reg1).length; //20
-        const length_reg2 = html.match(reg2).length; //20: including /static/images
+        // const length_reg1 = html.match(reg1).length; //20
+        // const length_reg2 = html.match(reg2).length; //20: including /static/images
 
         console.log(imgLinks);
 
