@@ -36,8 +36,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
     let css = [];
     let cssLinks = [];
-    let imgLinks = []; //length:20
-    let base64_array = []; //18
+    let imgLinks = []; 
+    let base64_array = []; 
 
     // Function to download the html retrieved from jquery
     function download(html) {
@@ -88,8 +88,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           // Waits for the function to fulfil promise then set data to cssText
           let cssText = await getData(cssLinks[index]);
 
-          //console.log(cssText)
-
           // Wrap data into <sytle> tags to append to html
           cssElement = "<style>" + cssText + "</style> ";
 
@@ -104,7 +102,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 
     // Function to replace components within HTML with CSS retrieved
     let replaceCSS = () => {
-      //console.log(css)
       cssLinks.forEach((cssLink, index) => {
         //Replace previous <link> tag with new css <style> tag
         console.log("replaceCSS:", "Replacing");
@@ -115,22 +112,58 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       });
     };
 
+    // Function to retrieve img elements within HTML and extract src links
+    let getImgLinks = () => {
+
+      // Parse html to retrieve images
+      const PARSEDHTML = $.parseHTML(html);
+      let imgElements = $(PARSEDHTML).find("img");
+
+      // Extract src for each image found and push into an array
+      imgElements.each((_, img) => {
+        let src = $(img).attr("src").toString();;
+
+        if (src.search("https") == -1) {
+          src = "https:" + src;
+        }
+
+        imgLinks.push(src);
+      });
+    };
+
+    // Function to convert images to Base 64
     let converToBase64 = async () => {
       for (let i = 0; i < imgLinks.length - 2; i++) {
+
+        // Wait to get image
         let img = await fetch(imgLinks[i]);
 
-        console.log(img);
-
-        let test = await img.blob();
-
-        console.log(test);
+        // Wait until image is converted into a blob
+        let imgBlob = await img.blob();
 
         const reader = new FileReader();
         reader.onloadend = function () {
           base64_array.push(reader.result);
         };
-        reader.readAsDataURL(new Blob([test], { type: test.type }));
+        reader.readAsDataURL(new Blob([imgBlob], { type: imgBlob.type }));
       }
+    };
+
+    // Function to replace <img> src attributes with Base 64
+    let replaceImgs = () => {
+      //reg ex: get src and srcset
+      const reg1 = /(?<=img.*?src=)(".*?")/gm;
+      // const reg2 = /(?<=img.*?srcset=)(".*?[jpg|png|JPG] 2x")/gm;
+      // //replace
+      // const length_reg1 = html.match(reg1).length; //20
+      // const length_reg2 = html.match(reg2).length; //20: including /static/images
+
+      const imgElements = html.match(reg1)
+
+      base64_array.forEach((each, index) => {
+        console.log("For Each:", "Replacing image");
+        html = html.replace(imgElements[index], '"' + each + '"');
+      });
     };
 
     // Main Asynchronous function that initiates the scraping process
@@ -140,45 +173,14 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         // variable
         html = await getData(url);
 
-        console.log("parsing HTML");
-        testParse = $.parseHTML(html);
-        let testImageElements = $(testParse).find("img");
+        // Initiate the retrivial of img src links
+        getImgLinks();
 
-        console.log(testImageElements);
-
-        testImageElements.each(function () {
-          let src = $(this).attr("src");
-          let srcset = $(this).attr("srcset");
-
-          //console.log(src)
-
-          if (src.toString().search("https") == -1) {
-            console.log(src.toString().search("https"));
-            console.log(src);
-            src = "https:" + src;
-            console.log(src);
-          }
-
-          imgLinks.push(src);
-        });
-
-        //reg ex: get src and srcset
-        const reg1 = /(?<=img.*?src=)(".*?")/gm;
-        // const reg2 = /(?<=img.*?srcset=)(".*?[jpg|png|JPG] 2x")/gm;
-        //replace
-        // const length_reg1 = html.match(reg1).length; //20
-        // const length_reg2 = html.match(reg2).length; //20: including /static/images
-
-        console.log(imgLinks);
-
+        // Convert images to base 64
         await converToBase64();
 
-        console.log(base64_array);
-
-        base64_array.forEach((each, index) => {
-          console.log("For Each:", "Replacing image");
-          html = html.replace(html.match(reg1)[index], '"' + each + '"');
-        });
+        // replace the <img> src attributes with base 64
+        replaceImgs();
 
         // Initiate function to get CSS links
         getCSSLinks(html);
@@ -187,7 +189,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (cssLinks.length > 0) {
           try {
             await getCSS(html);
-
             replaceCSS();
 
             console.log("DOWNLOADING");
