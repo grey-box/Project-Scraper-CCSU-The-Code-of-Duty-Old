@@ -36,8 +36,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
     let css = [];
     let cssLinks = [];
-    let imgLinks = []; 
-    let base64_array = []; 
+    let imgLinks = [];
+    let base64_array = [];
 
     // Function to download the html retrieved from jquery
     function download(html) {
@@ -76,7 +76,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           element = element.toString().replace(chrome.runtime.id, hostname);
         }
 
-        console.log("getCSSLinks:", "Pushing");
+        //console.log("getCSSLinks:", "Pushing");
         cssLinks.push(element.toString());
       });
     };
@@ -91,7 +91,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           // Wrap data into <sytle> tags to append to html
           cssElement = "<style>" + cssText + "</style> ";
 
-          console.log("getCSS (try):", "Assigning");
+          //console.log("getCSS (try):", "Assigning");
           css[index] = cssElement;
         } catch (err) {
           console.log(err);
@@ -104,7 +104,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     let replaceCSS = () => {
       cssLinks.forEach((cssLink, index) => {
         //Replace previous <link> tag with new css <style> tag
-        console.log("replaceCSS:", "Replacing");
+        //console.log("replaceCSS:", "Replacing");
         html = html.replace(
           /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
           css[index]
@@ -114,14 +114,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 
     // Function to retrieve img elements within HTML and extract src links
     let getImgLinks = () => {
-
       // Parse html to retrieve images
       const PARSEDHTML = $.parseHTML(html);
       let imgElements = $(PARSEDHTML).find("img");
 
       // Extract src for each image found and push into an array
       imgElements.each((_, img) => {
-        let src = $(img).attr("src").toString();;
+        let src = $(img).attr("src").toString();
 
         if (src.search("https") == -1) {
           src = "https:" + src;
@@ -134,7 +133,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // Function to convert images to Base 64
     let converToBase64 = async () => {
       for (let i = 0; i < imgLinks.length - 2; i++) {
-
         // Wait to get image
         let img = await fetch(imgLinks[i]);
 
@@ -158,12 +156,122 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       // const length_reg1 = html.match(reg1).length; //20
       // const length_reg2 = html.match(reg2).length; //20: including /static/images
 
-      const imgElements = html.match(reg1)
+      const imgElements = html.match(reg1);
 
       base64_array.forEach((each, index) => {
         console.log("For Each:", "Replacing image");
         html = html.replace(imgElements[index], '"' + each + '"');
       });
+    };
+
+    let urlMap = new Map();
+    urlMap.set(url, false);
+
+    let wikiOmits = [
+      "popup.html",
+      "wiki/Main_Page",
+      "index.php",
+      "Portal:Current_events",
+      "Special:",
+      "File:",
+      "Category:",
+      "Help:",
+      "Wikipedia:",
+      "Template:",
+      "Template_talk:",
+    ];
+
+    let linker = async (url) => {
+      urlMap.set(url, true);
+
+      try {
+        let data = await getData(url);
+        PARSEDTEST = $.parseHTML(data);
+        let testAElements = $(PARSEDTEST).find("a[href]");
+
+        // console.log(url, testAElements);
+
+        testAElements.each(function (index) {
+          let URL = this;
+          let checks = 0;
+
+          if (URL.protocol === "chrome-extension:") {
+            URL = URL.toString().replace("chrome-extension:", "https:");
+          }
+          if (URL.toString().search(chrome.runtime.id) >= 1) {
+            URL = URL.toString().replace(chrome.runtime.id, hostname);
+          }
+
+          if (!(typeof URL === "string")) {
+            URL = $(URL).attr("href");
+          }
+
+          if (!urlMap.has(URL)) {
+            wikiOmits.every((omit) => {
+              if (checks > 0) {
+                return false;
+              }
+
+              if (URL.toString().search(omit) >= 0) {
+                checks++;
+              }
+
+              return true;
+            });
+
+            // console.log("https://" + hostname)
+            if (
+              checks < 1 &&
+              URL.toString().search("https://" + hostname) >= 0
+            ) {
+              urlMap.set(URL, false);
+              // index++
+            }
+          }
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    let recursion = async (url, depth) => {
+      while (depth >= 0) {
+        
+        const temp = new Map(urlMap)
+
+        for (const [key, value] of temp) {
+          // console.log(temp.size, count);
+          // if (count >= temp) {
+          //   break;
+          // }
+          if (value == false) {
+            await linker(key);
+          }
+          
+        }
+        depth = depth - 1
+      }
+
+      // if (depth <= 0) {
+      //   await linker(url);
+      //   // console.log("Depth " + depth + ":", URLARRAY);
+      // } else {
+      //   await linker(url);
+
+      //   // console.log("Depth " + depth + ":", URLARRAY);
+      //   const temp = new Map(urlMap)
+      //   let count = 0;
+      //   for (const [key, value] of temp) {
+      //     console.log(temp.size, count);
+      //     // if (count >= temp) {
+      //     //   break;
+      //     // }
+      //     if (urlMap.get(key) == false) {
+      //       await recursion(key, depth - 1);
+      //     }
+      //     count++;
+      //   }
+      // }
     };
 
     // Main Asynchronous function that initiates the scraping process
@@ -172,6 +280,26 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         // Wait for function to fulfill promise then set HTML data to
         // variable
         html = await getData(url);
+
+        // $(function () {
+        //   var progressbar = $("#progressbar-1");
+        //   $("#progressbar-1").progressbar({
+        //     value: 30,
+        //     max: 300,
+        //   });
+        //   function progress() {
+        //     var val = progressbar.progressbar("value") || 0;
+        //     progressbar.progressbar("value", val + 1);
+        //     if (val < 300) {
+        //       setTimeout(progress, 1);
+        //     }
+        //   }
+        //   setTimeout(progress, 1000);
+        // });
+
+        await recursion(url, 2);
+
+        console.log([...urlMap.entries()]);
 
         // Initiate the retrivial of img src links
         getImgLinks();
@@ -192,12 +320,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             replaceCSS();
 
             console.log("DOWNLOADING");
-            download(html);
+            // download(html);
           } catch (err) {
             console.log(err);
           }
         } else {
-          download(html);
+          //download(html);
         }
       } catch (err) {
         console.log(err);
