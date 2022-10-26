@@ -27,7 +27,7 @@ let urlform = document.getElementById("url-form");
 
 let saveBtn = document.querySelectorAll('.btn-secondary')
 
-urlform.addEventListener("click", async (event) => {
+document.getElementById("btn").addEventListener("click", async (event) => {
     let urls_file_content = []
     let allImagesList = [];
     //read from input file
@@ -36,15 +36,21 @@ urlform.addEventListener("click", async (event) => {
     function load() {
         return new Promise(((resolve, reject) => {
             let selected = document.getElementById("file").files[0];
-            console.log(selected)
-            let reader = new FileReader();
-            reader.addEventListener("loadend", () => {
-                urls_file_content = reader.result.split(/\r\n|\n/)
-                resolve(urls_file_content)
-                console.log("in promise")
-                console.log(urls_file_content)
-            });
-            reader.readAsText(selected);
+            if(selected != null){
+                console.log(selected)
+                let reader = new FileReader();
+                reader.addEventListener("loadend", () => {
+                    urls_file_content = reader.result.split(/\r\n|\n/)
+                    resolve(urls_file_content)
+                    console.log("in promise")
+                    console.log(urls_file_content)
+                });
+                reader.readAsText(selected);
+            }else if(document.getElementById("text_area").value != null){
+                let text_lines = document.getElementById("text_area").value.split('\n')
+                console.log(text_lines)
+                resolve(text_lines)
+            }
         }))
     }
 
@@ -94,7 +100,6 @@ urlform.addEventListener("click", async (event) => {
             });
         });
     }
-
 
     async function get_html(url, folderName, imgUrlArray) {
         return new Promise((async (resolve, reject) => {
@@ -244,6 +249,8 @@ urlform.addEventListener("click", async (event) => {
         try {
             var zip = new JSZip()
             const res = await load()
+            console.log("res")
+            console.log(res)
             let folder_name = "images_folder"
             zip.folder(folder_name)
             for (const each of res) {
