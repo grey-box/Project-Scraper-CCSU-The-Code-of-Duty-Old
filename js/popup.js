@@ -265,35 +265,37 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           const reg2 = /(?<=img.*?srcset=)(".*?2x")/gm;
           const reg3 = /(?<=img.*?srcset)(=".*?2x")/gm;
           //replace
-          const length_reg1 = html.match(reg1).length; //20
-          const length_reg2 = html.match(reg2).length; //20: including /static/images
-          const length_reg3 = html.match(reg3).length;
+          //   const length_reg1 = html.match(reg1).length; //20
+          //   const length_reg2 = html.match(reg2).length; //20: including /static/images
+          // const length_reg3 = html.match(reg3).length;
+          const imgSRC = html.match(reg1);
+          const imgSRCSET = html.match(reg3);
 
-          //remove srcset
-          for (let j = 0; j < length_reg3 - 2; j++) {
-            html = html.replace(html.match(reg3)[j], "");
+          if (imgSRCSET != null) {
+            imgSRCSET.forEach((each) => {
+              html = html.replace(each, "");
+            });
           }
 
-          for (let j = 0; j < html.match(reg3).length - 2; j++) {
-            html = html.replace(html.match(reg3)[j], "");
-          }
-
-          for (let j = 0; j < html.match(reg3).length; j++) {
-            html = html.replace(html.match(reg3)[0], "");
+          if (imgSRC != null) {
+            imgSRC.forEach((each, i) => {
+              console.log(imgs);
+              html = html.replace(
+                each,
+                '"./' +
+                  folderName +
+                  "/" +
+                  imgs[i].toString().substr(imgs[i].lastIndexOf("/") + 1) +
+                  '"'
+              );
+            });
           }
 
           //replace src
-          for (let i = 0; i < imgs.length - 2; i++) {
-            html = html.replace(
-              html.match(reg1)[i],
-              '"./' +
-                folderName +
-                "/" +
-                imgs[i].toString().substr(imgs[i].lastIndexOf("/") + 1) +
-                '"'
-            );
-            //html = html.replace(html.match(reg2)[i], '"./' + folderName + "/"+imgUrlArray[i].toString().substr(imgUrlArray[i].lastIndexOf('/') + 1) + '"');
-          }
+          // for (let i = 0; i < imgs.length - 2; i++) {
+
+          //   //html = html.replace(html.match(reg2)[i], '"./' + folderName + "/"+imgUrlArray[i].toString().substr(imgUrlArray[i].lastIndexOf('/') + 1) + '"');
+          // }
 
           // imgUrlArray.forEach((each, index) => {
           //     console.log("For Each:", "Replacing image");
