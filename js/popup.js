@@ -96,7 +96,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         //   src = "https:" + src;
         //   //console.log(src);
         // }
-        
+
         imgLinks.push(element.toString());
       });
       return imgLinks;
@@ -351,13 +351,14 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
   async function getContent() {
     try {
+      let depth = document.getElementById("depth_area").value;
       const res = await load();
       console.log("res");
       console.log(res);
       let folder_name = "images_folder";
       zip.folder(folder_name);
       for (const each of res) {
-        await crawler(each, 1);
+        await crawler(each, depth);
         // let html_new = await get_html(each, folder_name)
         // console.log(html_new)
       }
