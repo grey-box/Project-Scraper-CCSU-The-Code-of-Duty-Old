@@ -31,6 +31,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   let zip = new JSZip();
   let html = null;
   let urlMap = new Map();
+  let imgsMap = new Map();
   const DEPTH = 1;
 
   let urls_file_content = [];
@@ -80,24 +81,23 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         let src = $(this).attr("src");
 
         let element = document.createElement("a");
+
         $(element).attr("href", src);
 
+        element = element.toString();
+
         if (element.protocol === "chrome-extension:") {
-          element = element.toString().replace("chrome-extension:", "https:");
+          element = element.replace("chrome-extension:", "https:");
         }
-        if (element.toString().search(chrome.runtime.id) >= 1) {
-          element = element.toString().replace(chrome.runtime.id, hostname);
+        if (element.search(chrome.runtime.id) >= 1) {
+          element = element.replace(chrome.runtime.id, hostname);
         }
 
-        //console.log(src)
-        // if (src.toString().search("https") == -1) {
-        //   // console.log(src.toString().search("https"));
-        //   //console.log(src);
-        //   src = "https:" + src;
-        //   //console.log(src);
-        // }
-
-        imgLinks.push(element.toString());
+        console.log(element.toString());
+        imgLinks.push(element);
+        if (!imgsMap.has(element)) {
+          imgsMap.set(element, "");
+        }
       });
       return imgLinks;
     } catch (e) {
@@ -105,7 +105,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     }
   };
 
-  function urlToPromise(url) {
+  function urlToPromise(url, image_name) {
     return new Promise(function (resolve, reject) {
       JSZipUtils.getBinaryContent(url, function (err, data) {
         if (err) {
@@ -249,15 +249,22 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           }
 
           const imgs = await get_imgs(url);
-          for (let i = 0; i < imgs.length - 2; i++) {
-            console.log(imgs[i]);
-            let image_name = decodeURIComponent(
-              imgs[i].toString().substr(imgs[i].lastIndexOf("/") + 1)
-            );
-            zip.file(folderName + "/" + image_name, urlToPromise(imgs[i]), {
-              binary: true,
-            });
-          }
+          console.log(imgsMap);
+          imgs.forEach((each) => {
+            if (imgsMap.get(each) == "") {
+              let image_name = decodeURIComponent(
+                each.toString().substr(each.lastIndexOf("/") + 1)
+              );
+              zip.file(
+                folderName + "/" + image_name,
+                urlToPromise(each, image_name),
+                {
+                  binary: true,
+                }
+              );
+              imgsMap.set(each, image_name)
+            }
+          });
 
           console.log("await get data from url: before replacing");
           // console.log(html)
@@ -271,6 +278,8 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           const imgSRC = html.match(reg1);
           const imgSRCSET = html.match(reg3);
 
+          console.log(imgSRC);
+
           if (imgSRCSET != null && imgSRCSET.length > 1) {
             imgSRCSET.forEach((each) => {
               html = html.replace(each, "");
@@ -279,25 +288,27 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
           if (imgSRC != null && imgSRC.length > 1) {
             imgSRC.forEach((each, i) => {
-              console.log(imgs);
-              let temp = imgs[i]
-                .toString()
-                .substr(imgs[i].lastIndexOf("/") + 1);
+              if (imgsMap.has(each)) {
+                html = html.replace(
+                  each,
+                  '"./' + folderName + "/" + imgsMap.get(each) + '"'
+                );
+              }
+              // try {
+              //   console.log(each);
+              //   let temp = imgs[i]
+              //     .toString()
+              //     .substr(imgs[i].lastIndexOf("/") + 1);
 
-              html = html.replace(each, '"./' + folderName + "/" + temp + '"');
+              //   html = html.replace(
+              //     each,
+              //     '"./' + folderName + "/" + temp + '"'
+              //   );
+              // } catch (error) {
+              //   console.log(error);
+              // }
             });
           }
-
-          //replace src
-          // for (let i = 0; i < imgs.length - 2; i++) {
-
-          //   //html = html.replace(html.match(reg2)[i], '"./' + folderName + "/"+imgUrlArray[i].toString().substr(imgUrlArray[i].lastIndexOf('/') + 1) + '"');
-          // }
-
-          // imgUrlArray.forEach((each, index) => {
-          //     console.log("For Each:", "Replacing image");
-          //     html = html.replace(html.match(reg1)[index], '"./' +folderName+ each.toString().substr(each.lastIndexOf('/') + 1) + '"');
-          // });
 
           // Initiate function to get CSS links
           getCSSLinks(html);
