@@ -43,6 +43,9 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   let zip = new JSZip();
   let html = null;
   let urlMap = new Map();
+  let imgsMap = new Map();
+  let cssMap = new Map();
+  let cssCount = 1;
   const DEPTH = 1;
 
   let urls_file_content = [];
@@ -71,7 +74,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     });
   }
 
-  let getData = async (url) => {
+  let getData = (url) => {
     console.log("getData:", "Getting data from URL");
     return $.get(url);
   };
@@ -92,24 +95,23 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         let src = $(this).attr("src");
 
         let element = document.createElement("a");
+
         $(element).attr("href", src);
+
+        // element = element.toString();
 
         if (element.protocol === "chrome-extension:") {
           element = element.toString().replace("chrome-extension:", "https:");
         }
-        if (element.toString().search(chrome.runtime.id) >= 1) {
-          element = element.toString().replace(chrome.runtime.id, hostname);
+        if (element.search(chrome.runtime.id) >= 1) {
+          element = element.replace(chrome.runtime.id, hostname);
         }
 
-        //console.log(src)
-        // if (src.toString().search("https") == -1) {
-        //   // console.log(src.toString().search("https"));
-        //   //console.log(src);
-        //   src = "https:" + src;
-        //   //console.log(src);
-        // }
-
-        imgLinks.push(element.toString());
+        console.log(element.toString());
+        imgLinks.push(element);
+        if (!imgsMap.has(element)) {
+          imgsMap.set(element, "");
+        }
       });
       return imgLinks;
     } catch (e) {
@@ -120,6 +122,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   function urlToPromise(url) {
     return new Promise(function (resolve, reject) {
       JSZipUtils.getBinaryContent(url, function (err, data) {
+        console.log("JSZIPPER");
         if (err) {
           reject(err);
         } else {
@@ -154,33 +157,68 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           let element = document.createElement("a");
           $(element).attr("href", $(this).attr("href"));
 
+          // element = element.toString();
+
           if (element.protocol === "chrome-extension:") {
             element = element.toString().replace("chrome-extension:", "https:");
           }
-          if (element.toString().search(chrome.runtime.id) >= 1) {
-            element = element.toString().replace(chrome.runtime.id, hostname);
+          if (element.search(chrome.runtime.id) >= 1) {
+            element = element.replace(chrome.runtime.id, hostname);
           }
 
           console.log("getCSSLinks:", "Pushing");
-          cssLinks.push(element.toString());
+          cssLinks.push(element);
+          if (!cssMap.has(element)) {
+            cssMap.set(element, "");
+          }
         });
       };
 
-      let getCSS = async (html) => {
-        for (let index = 0; index < cssLinks.length; index++) {
-          try {
-            // Waits for the function to fulfil promise then set data to cssText
-            let cssText = await getData(cssLinks[index]);
-            //console.log(cssText)
-            // Wrap data into <sytle> tags to append to html
-            cssElement = "<style>" + cssText + "</style> ";
-            console.log("getCSS (try):", "Assigning");
-            css[index] = cssElement;
-          } catch (err) {
-            console.log(err);
-            css[index] = "";
+      let getCSS = async () => {
+        // for (let index = 0; index < cssLinks.length; index++) {
+        //   try {
+        //     // Waits for the function to fulfil promise then set data to cssText
+        //     let cssText = await getData(cssLinks[index]);
+        //     let css_name = "css" + cssCount;
+        //     cssCount++
+
+        //     console.log(css_name);
+        //     console.log(cssText);
+
+        //     zip.file("CSS/" + css_name + ".css", cssText);
+        //     cssMap.set(cssLinks[index], css_name);
+        //   } catch (err) {
+        //     console.log(err);
+        //   }
+        // }
+
+        cssLinks.forEach(async (each) => {
+          if (cssMap.get(each) == "") {
+            // let cssText = await getData(each);
+            let css_name = "css" + cssCount;
+            cssCount++;
+
+            zip.file("CSS/" + css_name + ".css", urlToPromise(each), {
+              binary: true,
+            });
+            cssMap.set(each, css_name);
           }
-        }
+        });
+
+        // for (let index = 0; index < cssLinks.length; index++) {
+        //   try {
+        //     // Waits for the function to fulfil promise then set data to cssText
+        //     let cssText = await getData(cssLinks[index]);
+        //     //console.log(cssText)
+        //     // Wrap data into <sytle> tags to append to html
+        //     cssElement = "<style>" + cssText + "</style> ";
+        //     console.log("getCSS (try):", "Assigning");
+        //     css[index] = cssElement;
+        //   } catch (err) {
+        //     console.log(err);
+        //     css[index] = "";
+        //   }
+        // }
       };
 
       let replaceCSS = () => {
@@ -261,15 +299,18 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           }
 
           const imgs = await get_imgs(url);
-          for (let i = 0; i < imgs.length - 2; i++) {
-            console.log(imgs[i]);
-            let image_name = imgs[i]
-              .toString()
-              .substr(imgs[i].lastIndexOf("/") + 1);
-            zip.file(folderName + "/" + image_name, urlToPromise(imgs[i]), {
-              binary: true,
-            });
-          }
+          console.log(imgsMap);
+          imgs.forEach((each) => {
+            if (imgsMap.get(each) == "") {
+              let image_name = decodeURIComponent(
+                each.toString().substr(each.lastIndexOf("/") + 1)
+              );
+              zip.file(folderName + "/" + image_name, urlToPromise(each), {
+                binary: true,
+              });
+              imgsMap.set(each, image_name);
+            }
+          });
 
           console.log("await get data from url: before replacing");
           // console.log(html)
@@ -277,40 +318,35 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           const reg2 = /(?<=img.*?srcset=)(".*?2x")/gm;
           const reg3 = /(?<=img.*?srcset)(=".*?2x")/gm;
           //replace
-          const length_reg1 = html.match(reg1).length; //20
-          const length_reg2 = html.match(reg2).length; //20: including /static/images
-          const length_reg3 = html.match(reg3).length;
+          //   const length_reg1 = html.match(reg1).length; //20
+          //   const length_reg2 = html.match(reg2).length; //20: including /static/images
+          // const length_reg3 = html.match(reg3).length;
+          const imgSRC = html.match(reg1);
+          const imgSRCSET = html.match(reg3);
 
-          //remove srcset
-          for (let j = 0; j < length_reg3 - 2; j++) {
-            html = html.replace(html.match(reg3)[j], "");
+          console.log(imgSRC);
+
+          if (imgSRCSET != null && imgSRCSET.length > 1) {
+            imgSRCSET.forEach((each) => {
+              html = html.replace(each, "");
+            });
           }
 
-          for (let j = 0; j < html.match(reg3).length - 2; j++) {
-            html = html.replace(html.match(reg3)[j], "");
-          }
+          if (imgSRC != null && imgSRC.length > 1) {
+            imgSRC.forEach((each, i) => {
+              try {
+                console.log(each);
+                let temp = each.toString().substr(each.lastIndexOf("/") + 1);
 
-          for (let j = 0; j < html.match(reg3).length; j++) {
-            html = html.replace(html.match(reg3)[0], "");
+                html = html.replace(
+                  each,
+                  '"./' + folderName + "/" + temp + '"'
+                );
+              } catch (error) {
+                console.log(error);
+              }
+            });
           }
-
-          //replace src
-          for (let i = 0; i < imgs.length - 2; i++) {
-            html = html.replace(
-              html.match(reg1)[i],
-              '"./' +
-                folderName +
-                "/" +
-                imgs[i].toString().substr(imgs[i].lastIndexOf("/") + 1) +
-                '"'
-            );
-            //html = html.replace(html.match(reg2)[i], '"./' + folderName + "/"+imgUrlArray[i].toString().substr(imgUrlArray[i].lastIndexOf('/') + 1) + '"');
-          }
-
-          // imgUrlArray.forEach((each, index) => {
-          //     console.log("For Each:", "Replacing image");
-          //     html = html.replace(html.match(reg1)[index], '"./' +folderName+ each.toString().substr(each.lastIndexOf('/') + 1) + '"');
-          // });
 
           // Initiate function to get CSS links
           getCSSLinks(html);
@@ -318,9 +354,56 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           // For every CSS link gets its CSS and append to HTML if any
           if (cssLinks.length > 0) {
             try {
-              await getCSS(html);
+              await getCSS();
 
-              replaceCSS();
+              // console.log(cssLinks);
+              // console.log(cssMap);
+
+              //replaceCSS();
+
+              const test1 = /(?<=link.*?rel="stylesheet".*?href=")(.*?)(?=")/gm;
+
+              
+
+              const cssHREF = html.match(test1);
+              console.log(cssHREF);
+
+              console.log("STARTING TO REPLACE");
+              cssHREF.forEach((each) => {
+                try {
+                  let element = document.createElement("a");
+                  $(element).attr("href", each);
+
+                  if (element.protocol === "chrome-extension:") {
+                    element = element
+                      .toString()
+                      .replace("chrome-extension:", "https:");
+                  } else {
+                    element = element.toString();
+                  }
+                  if (element.search(chrome.runtime.id) >= 1) {
+                    element = element.replace(chrome.runtime.id, hostname);
+                  }
+
+                  let temp = element.match(/amp;/g)
+                  temp.forEach((each) => {
+                    element = element.replace(each, "")
+                  })
+
+                  
+                  if (cssMap.has(element)) {
+                    console.log(element)
+                    html = html.replace(
+                      each,
+                      './' + "CSS/" + cssMap.get(element) + '.css'
+                    );
+                  }
+
+                  // let temp = each.toString().substr(each.lastIndexOf("/") + 1);
+                } catch (error) {
+                  console.log(error);
+                }
+              });
 
               console.log("return html");
               // console.log(html)
