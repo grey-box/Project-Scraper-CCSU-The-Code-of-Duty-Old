@@ -30,6 +30,10 @@ var output = document.getElementById("value");
 output.innerHTML = slider.value;
 
 slider.oninput = function () {
+  if (slider.value > 2) {
+  window.confirm("Crawling may take longer if depth value is greater than 2")
+
+  }
   output.innerHTML = this.value;
 };
 
