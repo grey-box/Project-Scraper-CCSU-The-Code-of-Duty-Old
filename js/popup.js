@@ -25,17 +25,13 @@ let urlform = document.getElementById("url-form");
 
 //Execute after submitting form (clicking the save button)
 
-
-
 var slider = document.getElementById("depth_area");
 var output = document.getElementById("value");
 output.innerHTML = slider.value;
 
-slider.oninput = function() {
+slider.oninput = function () {
   output.innerHTML = this.value;
-}
-   
-
+};
 
 let saveBtn = document.querySelectorAll(".btn-secondary");
 
@@ -51,31 +47,31 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   let urls_file_content = [];
   let allImagesList = [];
   //read from input file
-  console.log("read file");
+  // console.log("read file");
 
   function load() {
     return new Promise((resolve, reject) => {
       let selected = document.getElementById("file").files[0];
       if (selected != null) {
-        console.log(selected);
+        // console.log(selected);
         let reader = new FileReader();
         reader.addEventListener("loadend", () => {
           urls_file_content = reader.result.split(/\r\n|\n/);
           resolve(urls_file_content);
-          console.log("in promise");
-          console.log(urls_file_content);
+          // console.log("in promise");
+          // console.log(urls_file_content);
         });
         reader.readAsText(selected);
       } else if (document.getElementById("text_area").value != null) {
         let text_lines = document.getElementById("text_area").value.split("\n");
-        console.log(text_lines);
+        // console.log(text_lines);
         resolve(text_lines);
       }
     });
   }
 
   let getData = (url) => {
-    console.log("getData:", "Getting data from URL");
+    // console.log("getData:", "Getting data from URL");
     return $.get(url);
   };
 
@@ -102,12 +98,15 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
         if (element.protocol === "chrome-extension:") {
           element = element.toString().replace("chrome-extension:", "https:");
+        } else {
+          element = element.toString();
         }
+
         if (element.search(chrome.runtime.id) >= 1) {
           element = element.replace(chrome.runtime.id, hostname);
         }
 
-        console.log(element.toString());
+        // console.log(element.toString());
         imgLinks.push(element);
         if (!imgsMap.has(element)) {
           imgsMap.set(element, "");
@@ -122,7 +121,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   function urlToPromise(url) {
     return new Promise(function (resolve, reject) {
       JSZipUtils.getBinaryContent(url, function (err, data) {
-        console.log("JSZIPPER");
+        // console.log("JSZIPPER");
         if (err) {
           reject(err);
         } else {
@@ -136,15 +135,15 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     urlMap.set(url, true);
 
     return new Promise(async (resolve, reject) => {
-      console.log("get html");
-      console.log(folderName);
+      // console.log("get html");
+      // console.log(folderName);
 
       let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
       let css = [];
       let cssLinks = [];
 
       let get_data = async (url) => {
-        console.log("getData:", "Getting data from URL");
+        // console.log("getData:", "Getting data from URL");
         return $.get(url);
       };
 
@@ -161,12 +160,14 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
           if (element.protocol === "chrome-extension:") {
             element = element.toString().replace("chrome-extension:", "https:");
+          } else {
+            element = element.toString();
           }
           if (element.search(chrome.runtime.id) >= 1) {
             element = element.replace(chrome.runtime.id, hostname);
           }
 
-          console.log("getCSSLinks:", "Pushing");
+          // console.log("getCSSLinks:", "Pushing");
           cssLinks.push(element);
           if (!cssMap.has(element)) {
             cssMap.set(element, "");
@@ -225,7 +226,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         //console.log(css)
         cssLinks.forEach((cssLink, index) => {
           //Replace previous <link> tag with new css <style> tag
-          console.log("replaceCSS:", "Replacing");
+          // console.log("replaceCSS:", "Replacing");
           html = html.replace(
             /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
             css[index]
@@ -238,7 +239,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           "popup.html",
           "wiki/Main_Page",
           "index.php",
-          "Portal:Current_events",
+          "Portal:",
           "Special:",
           "File:",
           "Category:",
@@ -290,7 +291,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           html = await getData(url);
 
           if (depth >= 0) {
-            console.log("DEPTH IS EQUAL");
+            // console.log("DEPTH IS EQUAL");
             let PARSEDHTML = $.parseHTML(html);
             let aElements = $(PARSEDHTML).find("a[href]");
             aElements.each(function () {
@@ -299,12 +300,41 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           }
 
           const imgs = await get_imgs(url);
-          console.log(imgsMap);
+          // console.log(imgsMap);
+          let specialChar = [
+            /'/g,
+            /"/g,
+            /#/g,
+            /%/g,
+            /</g,
+            />/g,
+            /,/g,
+            /&/g,
+            /\{/g,
+            /\}/g,
+            /\?/g,
+            /!/g,
+            /$/g,
+            /\|/g,
+            /:/g,
+            /@/g,
+          ];
           imgs.forEach((each) => {
             if (imgsMap.get(each) == "") {
               let image_name = decodeURIComponent(
                 each.toString().substr(each.lastIndexOf("/") + 1)
               );
+
+              specialChar.forEach((each) => {
+                // const regex = new RegExp(each, g)
+                let temp = image_name.match(each);
+
+                if (temp != null && temp.length > 1) {
+                  temp.forEach((each) => {
+                    image_name = image_name.replace(each, "");
+                  });
+                }
+              });
               zip.file(folderName + "/" + image_name, urlToPromise(each), {
                 binary: true,
               });
@@ -312,7 +342,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             }
           });
 
-          console.log("await get data from url: before replacing");
+          // console.log("await get data from url: before replacing");
           // console.log(html)
           const reg1 = /(?<=img.*?src=)(".*?")/gm;
           const reg2 = /(?<=img.*?srcset=)(".*?2x")/gm;
@@ -324,7 +354,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           const imgSRC = html.match(reg1);
           const imgSRCSET = html.match(reg3);
 
-          console.log(imgSRC);
+          // console.log(imgSRC);
 
           if (imgSRCSET != null && imgSRCSET.length > 1) {
             imgSRCSET.forEach((each) => {
@@ -335,7 +365,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           if (imgSRC != null && imgSRC.length > 1) {
             imgSRC.forEach((each, i) => {
               try {
-                console.log(each);
+                // console.log(each);
                 let temp = each.toString().substr(each.lastIndexOf("/") + 1);
 
                 html = html.replace(
@@ -356,23 +386,22 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             try {
               await getCSS();
 
-              // console.log(cssLinks);
-              // console.log(cssMap);
-
               //replaceCSS();
 
-              const test1 = /(?<=link.*?rel="stylesheet".*?href=")(.*?)(?=")/gm;
+              // const test1 = /(?<=link.*?rel=("|')stylesheet("|'))(.*?)(?=>)/gm;
+              const test2 = /(?<=link.*?href=("|'))(.*?)(?=("|'))/gm;
+              const cssHREF = html.match(test2);
 
-              
-
-              const cssHREF = html.match(test1);
+              console.log(cssMap);
               console.log(cssHREF);
 
-              console.log("STARTING TO REPLACE");
               cssHREF.forEach((each) => {
                 try {
                   let element = document.createElement("a");
+                  // let attr = $(this).attr("href")
                   $(element).attr("href", each);
+
+                  console.log(each);
 
                   if (element.protocol === "chrome-extension:") {
                     element = element
@@ -385,17 +414,17 @@ document.getElementById("btn").addEventListener("click", async (event) => {
                     element = element.replace(chrome.runtime.id, hostname);
                   }
 
-                  let temp = element.match(/amp;/g)
-                  temp.forEach((each) => {
-                    element = element.replace(each, "")
-                  })
+                  let temp = element.match(/amp;/g);
+                  if (temp != null && temp.length > 1) {
+                    temp.forEach((each) => {
+                      element = element.replace(each, "");
+                    });
+                  }
 
-                  
                   if (cssMap.has(element)) {
-                    console.log(element)
                     html = html.replace(
                       each,
-                      './' + "CSS/" + cssMap.get(element) + '.css'
+                      "./" + "CSS/" + cssMap.get(element) + ".css"
                     );
                   }
 
@@ -405,17 +434,16 @@ document.getElementById("btn").addEventListener("click", async (event) => {
                 }
               });
 
-              console.log("return html");
+              // console.log("return html");
               // console.log(html)
               zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
               resolve(html);
-              //console.log("DOWNLOADING");
             } catch (err) {
               console.log(err);
             }
           } else {
-            console.log("return html");
-            console.log(html);
+            // console.log("return html");
+            // console.log(html);
             zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
             resolve(html);
           }
@@ -433,7 +461,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     while (depth >= 0) {
       const temp = new Map(urlMap);
 
-      console.log(temp);
+      // console.log(temp);
       for (const [key, value] of temp) {
         if (value == false) {
           console.log("VALUE IS FALSE");
