@@ -25,6 +25,18 @@ let urlform = document.getElementById("url-form");
 
 //Execute after submitting form (clicking the save button)
 
+
+
+var slider = document.getElementById("depth_area");
+var output = document.getElementById("value");
+output.innerHTML = slider.value;
+
+slider.oninput = function() {
+  output.innerHTML = this.value;
+}
+   
+
+
 let saveBtn = document.querySelectorAll(".btn-secondary");
 
 document.getElementById("btn").addEventListener("click", async (event) => {
