@@ -1,211 +1,472 @@
 let urlform = document.getElementById("url-form");
-let optform = document.getElementById("option-form");
+// let optform = document.getElementById("option-form");
+//
+//
+// document.addEventListener("DOMContentLoaded", () => {
+//     chrome.storage.local.get(
+//         {
+//             aszip: false,
+//             corsbypass: false,
+//         },
+//         (data) => {
+//             optform.corsbypass.checked = data.corsbypass;
+//             optform.aszip.checked = data.aszip;
+//         }
+//     );
+// });
+//
+// optform.corsbypass.addEventListener("change", (event) => {
+//     chrome.storage.local.set({corsbypass: Boolean(event.target.checked)});
+// });
+//
+// optform.aszip.addEventListener("change", (event) => {
+//     chrome.storage.local.set({aszip: Boolean(event.target.checked)});
+// });
 
-let allImagesList = [];
-let downloadId= [];
-
-document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.local.get(
-    {
-      aszip: false,
-      corsbypass: false,
-    },
-    (data) => {
-      optform.corsbypass.checked = data.corsbypass;
-      optform.aszip.checked = data.aszip;
-    }
-  );
-});
-
-optform.corsbypass.addEventListener("change", (event) => {
-  chrome.storage.local.set({ corsbypass: Boolean(event.target.checked) });
-});
-
-optform.aszip.addEventListener("change", (event) => {
-  chrome.storage.local.set({ aszip: Boolean(event.target.checked) });
-});
-
-// Allows the extension to read the tabs that are open
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  // Retrieves the current tab URL
-  let url = tabs[0].url;
-
-  // Execute after submitting form (clicking the save button)
-  urlform.addEventListener("submit", (event) => {
-    // Store url recieved from the form
-    // let url = urlform.url.value;
-
-      let html = null;
-      let hostname=null;
-
-      // Function to download the html retrieved from jquery
-      async function download() {
-
-        var find = '"//';
-        var re = new RegExp(find, 'g');
-        html = html.replaceAll(re, "https://");
-
-        /*
-        for(let row in allImagesList)
-        {
-          try {
-            const src = allImagesList[row].name;
-            const fetchResponse = await fetch(src);
-            const blob = await fetchResponse.blob();
-            await chrome.downloads.download({
-              url: URL.createObjectURL(blob),
-              conflictAction: 'uniquify',
-              saveAs: false
-            },
-            (data) => {
-              //downloadId.push(allImagesList[row].name);
-              allImagesList[row].ID = data;
-            });
-
-          } catch (e) {
-          }
-        }
-
-        for(let row in allImagesList)
-        {
-          await chrome.downloads.search({
-              id: allImagesList[row].ID
-            }, function (downloadedItem) {
-              if(downloadedItem && downloadedItem.length == 1 )
-              {
-                if(downloadedItem[0].filename)
-                {
-                  allImagesList[row].path = downloadedItem[0].filename;
+//Execute after submitting form (clicking the save button)
 
 
-                  console.log(allImagesList[row].path ,allImagesList[row].name,allImagesList[row].Id);
 
-                  let _obj = $(html).find("img[srcset*='"+ allImagesList[row].name +"']");
+var slider = document.getElementById("depth_area");
+var output = document.getElementById("value");
+output.innerHTML = slider.value;
 
-                  console.log(_obj[0]);
-                 // $(_obj).attr("src",allImagesList[row].path);
-                  if(_obj.length >= 1 )
-                  {
-                    $(_obj[0]).attr("srcset",allImagesList[row].path);
-                    $(_obj[0]).attr("src",allImagesList[row].path);
-                  }
-
-                }
-                //console.log(downloadedItem);
-                //console.log(downloadedItem[0].filename);
-                //downloadedItem[0].filename
-              }
-            });
-        }
-
-        console.log(allImagesList);
-      
-        */
+slider.oninput = function() {
+  output.innerHTML = this.value;
+}
+   
 
 
-        // Convert html into objectURL to use chrome.downloads
-        let blob = new Blob([html], { type: "text/html" });
-        objURL = URL.createObjectURL(blob);
+let saveBtn = document.querySelectorAll(".btn-secondary");
 
-        // Download the url object
-        chrome.downloads.download({
-          url: objURL,
-          saveAs: true,
+document.getElementById("btn").addEventListener("click", async (event) => {
+  let zip = new JSZip();
+  let html = null;
+  let urlMap = new Map();
+  let imgsMap = new Map();
+  let cssMap = new Map();
+  let cssCount = 1;
+  const DEPTH = 1;
+
+  let urls_file_content = [];
+  let allImagesList = [];
+  //read from input file
+  console.log("read file");
+
+  function load() {
+    return new Promise((resolve, reject) => {
+      let selected = document.getElementById("file").files[0];
+      if (selected != null) {
+        console.log(selected);
+        let reader = new FileReader();
+        reader.addEventListener("loadend", () => {
+          urls_file_content = reader.result.split(/\r\n|\n/);
+          resolve(urls_file_content);
+          console.log("in promise");
+          console.log(urls_file_content);
         });
+        reader.readAsText(selected);
+      } else if (document.getElementById("text_area").value != null) {
+        let text_lines = document.getElementById("text_area").value.split("\n");
+        console.log(text_lines);
+        resolve(text_lines);
       }
+    });
+  }
 
-      // JQuery used to grab HTML from the url => response
-      $.get(url, function (response) {
+  let getData = (url) => {
+    console.log("getData:", "Getting data from URL");
+    return $.get(url);
+  };
 
+  const get_imgs = async (url) => {
+    try {
+      // Wait for function to fulfill promise then set HTML data to
+      // variable
+      let imgLinks = [];
+      let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
 
-        // RegEx to grab the hostname of the URL
-        hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
+      //   console.log("GETTING IMAGES:", html);
+      testParse = $.parseHTML(html);
+      let testImageElements = $(testParse).find("img");
+      // console.log(testImageElements);
 
-        let css = [];
-        let cssLinks = [];
-        html = response;
+      testImageElements.each(function () {
+        let src = $(this).attr("src");
 
+        let element = document.createElement("a");
 
-        imagesElements = $(html).find("img");
-        imagesElements.each(function(){
-        
-       
-           let name = $(this).attr("src");
+        $(element).attr("href", src);
 
-          let find = '//';
-          let re = new RegExp(find, 'g');
-          name = name.replaceAll(re, "https://");
+        // element = element.toString();
 
-           // console.log(name);
-          if(name && name.length >= 3 )
-          {
-            allImagesList.push({name:name});
-          }
+        if (element.protocol === "chrome-extension:") {
+          element = element.toString().replace("chrome-extension:", "https:");
+        }
+        if (element.search(chrome.runtime.id) >= 1) {
+          element = element.replace(chrome.runtime.id, hostname);
+        }
 
-        });
+        console.log(element.toString());
+        imgLinks.push(element);
+        if (!imgsMap.has(element)) {
+          imgsMap.set(element, "");
+        }
+      });
+      return imgLinks;
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
+  function urlToPromise(url) {
+    return new Promise(function (resolve, reject) {
+      JSZipUtils.getBinaryContent(url, function (err, data) {
+        console.log("JSZIPPER");
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+  }
 
+  async function get_html(url, depth, folderName) {
+    urlMap.set(url, true);
 
-        // Using JQuery to make an array of link tags with rel = stylesheet
-        linkElements = $(html).filter("link[rel=stylesheet]");
+    return new Promise(async (resolve, reject) => {
+      console.log("get html");
+      console.log(folderName);
+
+      let hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
+      let css = [];
+      let cssLinks = [];
+
+      let get_data = async (url) => {
+        console.log("getData:", "Getting data from URL");
+        return $.get(url);
+      };
+
+      let getCSSLinks = (html) => {
+        PARSEDHTML = $.parseHTML(html);
+        linkElements = $(PARSEDHTML).filter("link[rel=stylesheet]");
         linkElements.each(function () {
-          //console.log($(this).prop("outerHTML"));
-
           // Create a dummy element to transfer <link> tag href to an <a> tag
           // so that JQuery can identify its protocol, hostname, and pathname etc.
           let element = document.createElement("a");
           $(element).attr("href", $(this).attr("href"));
 
+          // element = element.toString();
+
           if (element.protocol === "chrome-extension:") {
             element = element.toString().replace("chrome-extension:", "https:");
           }
-          if (element.toString().search(chrome.runtime.id) >= 1) {
-            element = element.toString().replace(chrome.runtime.id, hostname);
+          if (element.search(chrome.runtime.id) >= 1) {
+            element = element.replace(chrome.runtime.id, hostname);
           }
-          cssLinks.push(element.toString());
+
+          console.log("getCSSLinks:", "Pushing");
+          cssLinks.push(element);
+          if (!cssMap.has(element)) {
+            cssMap.set(element, "");
+          }
+        });
+      };
+
+      let getCSS = async () => {
+        // for (let index = 0; index < cssLinks.length; index++) {
+        //   try {
+        //     // Waits for the function to fulfil promise then set data to cssText
+        //     let cssText = await getData(cssLinks[index]);
+        //     let css_name = "css" + cssCount;
+        //     cssCount++
+
+        //     console.log(css_name);
+        //     console.log(cssText);
+
+        //     zip.file("CSS/" + css_name + ".css", cssText);
+        //     cssMap.set(cssLinks[index], css_name);
+        //   } catch (err) {
+        //     console.log(err);
+        //   }
+        // }
+
+        cssLinks.forEach(async (each) => {
+          if (cssMap.get(each) == "") {
+            // let cssText = await getData(each);
+            let css_name = "css" + cssCount;
+            cssCount++;
+
+            zip.file("CSS/" + css_name + ".css", urlToPromise(each), {
+              binary: true,
+            });
+            cssMap.set(each, css_name);
+          }
         });
 
-        // For every CSS address gets its CSS and append to HTML if any
-        if (cssLinks.length > 0) {
+        // for (let index = 0; index < cssLinks.length; index++) {
+        //   try {
+        //     // Waits for the function to fulfil promise then set data to cssText
+        //     let cssText = await getData(cssLinks[index]);
+        //     //console.log(cssText)
+        //     // Wrap data into <sytle> tags to append to html
+        //     cssElement = "<style>" + cssText + "</style> ";
+        //     console.log("getCSS (try):", "Assigning");
+        //     css[index] = cssElement;
+        //   } catch (err) {
+        //     console.log(err);
+        //     css[index] = "";
+        //   }
+        // }
+      };
 
-          cssLinks.forEach(function (cssLink, i) {
-            // Clean up CSS link address
-            //cssLink = link.replace(/amp; *?/g, "");
+      let replaceCSS = () => {
+        //console.log(css)
+        cssLinks.forEach((cssLink, index) => {
+          //Replace previous <link> tag with new css <style> tag
+          console.log("replaceCSS:", "Replacing");
+          html = html.replace(
+            /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
+            css[index]
+          );
+        });
+      };
 
-            $.get({
-              url: cssLink,
-              dataType: "text",
-              error: function () {
-                // If the link to retrieve CSS returns error then assign nothing
-                // to its index value in css array
-                css[i] = "";
-              },
-              success: function (cssText) {
+      let urlCheck = (URL) => {
+        let wikiOmits = [
+          "popup.html",
+          "wiki/Main_Page",
+          "index.php",
+          "Portal:Current_events",
+          "Special:",
+          "File:",
+          "Category:",
+          "Help:",
+          "Wikipedia:",
+          "Template:",
+          "Template_talk:",
+          "Talk:",
+        ];
 
+        let checks = 0;
 
-                // Create css element for <head> tag and push into array
-                cssElement = "<style>" + cssText + "</style> ";
-                css[i] = cssElement;
-
-                if (css.length == cssLinks.length) {
-                  linkElements.each(function (index) {
-                    //Replace previous <link> tag with new css <style> tag
-                    html = html.replace(
-                      /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
-                      css[index]
-                    );
-                  });
-                  download();
-                }
-              },
-            });
-          });
-        } else {
-        //  download();
+        if (URL.protocol === "chrome-extension:") {
+          URL = URL.toString().replace("chrome-extension:", "https:");
         }
-      });
+        if (URL.toString().search(chrome.runtime.id) >= 1) {
+          URL = URL.toString().replace(chrome.runtime.id, hostname);
+        }
 
-      event.preventDefault();
+        if (!(typeof URL === "string")) {
+          URL = $(URL).attr("href");
+        }
+
+        if (!urlMap.has(URL)) {
+          wikiOmits.every((omit) => {
+            if (checks > 0) {
+              return false;
+            }
+
+            if (URL.toString().search(omit) >= 0) {
+              checks++;
+            }
+
+            return true;
+          });
+
+          // console.log("https://" + hostname)
+          if (checks < 1 && URL.toString().search("https://" + hostname) >= 0) {
+            urlMap.set(URL, false);
+            // index++
+          }
+        }
+      };
+
+      const scrape = async (url) => {
+        try {
+          // Wait for function to fulfill promise then set HTML data to
+          // variable
+          html = await getData(url);
+
+          if (depth >= 0) {
+            console.log("DEPTH IS EQUAL");
+            let PARSEDHTML = $.parseHTML(html);
+            let aElements = $(PARSEDHTML).find("a[href]");
+            aElements.each(function () {
+              urlCheck(this);
+            });
+          }
+
+          const imgs = await get_imgs(url);
+          console.log(imgsMap);
+          imgs.forEach((each) => {
+            if (imgsMap.get(each) == "") {
+              let image_name = decodeURIComponent(
+                each.toString().substr(each.lastIndexOf("/") + 1)
+              );
+              zip.file(folderName + "/" + image_name, urlToPromise(each), {
+                binary: true,
+              });
+              imgsMap.set(each, image_name);
+            }
+          });
+
+          console.log("await get data from url: before replacing");
+          // console.log(html)
+          const reg1 = /(?<=img.*?src=)(".*?")/gm;
+          const reg2 = /(?<=img.*?srcset=)(".*?2x")/gm;
+          const reg3 = /(?<=img.*?srcset)(=".*?2x")/gm;
+          //replace
+          //   const length_reg1 = html.match(reg1).length; //20
+          //   const length_reg2 = html.match(reg2).length; //20: including /static/images
+          // const length_reg3 = html.match(reg3).length;
+          const imgSRC = html.match(reg1);
+          const imgSRCSET = html.match(reg3);
+
+          console.log(imgSRC);
+
+          if (imgSRCSET != null && imgSRCSET.length > 1) {
+            imgSRCSET.forEach((each) => {
+              html = html.replace(each, "");
+            });
+          }
+
+          if (imgSRC != null && imgSRC.length > 1) {
+            imgSRC.forEach((each, i) => {
+              try {
+                console.log(each);
+                let temp = each.toString().substr(each.lastIndexOf("/") + 1);
+
+                html = html.replace(
+                  each,
+                  '"./' + folderName + "/" + temp + '"'
+                );
+              } catch (error) {
+                console.log(error);
+              }
+            });
+          }
+
+          // Initiate function to get CSS links
+          getCSSLinks(html);
+
+          // For every CSS link gets its CSS and append to HTML if any
+          if (cssLinks.length > 0) {
+            try {
+              await getCSS();
+
+              // console.log(cssLinks);
+              // console.log(cssMap);
+
+              //replaceCSS();
+
+              const test1 = /(?<=link.*?rel="stylesheet".*?href=")(.*?)(?=")/gm;
+
+              
+
+              const cssHREF = html.match(test1);
+              console.log(cssHREF);
+
+              console.log("STARTING TO REPLACE");
+              cssHREF.forEach((each) => {
+                try {
+                  let element = document.createElement("a");
+                  $(element).attr("href", each);
+
+                  if (element.protocol === "chrome-extension:") {
+                    element = element
+                      .toString()
+                      .replace("chrome-extension:", "https:");
+                  } else {
+                    element = element.toString();
+                  }
+                  if (element.search(chrome.runtime.id) >= 1) {
+                    element = element.replace(chrome.runtime.id, hostname);
+                  }
+
+                  let temp = element.match(/amp;/g)
+                  temp.forEach((each) => {
+                    element = element.replace(each, "")
+                  })
+
+                  
+                  if (cssMap.has(element)) {
+                    console.log(element)
+                    html = html.replace(
+                      each,
+                      './' + "CSS/" + cssMap.get(element) + '.css'
+                    );
+                  }
+
+                  // let temp = each.toString().substr(each.lastIndexOf("/") + 1);
+                } catch (error) {
+                  console.log(error);
+                }
+              });
+
+              console.log("return html");
+              // console.log(html)
+              zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+              resolve(html);
+              //console.log("DOWNLOADING");
+            } catch (err) {
+              console.log(err);
+            }
+          } else {
+            console.log("return html");
+            console.log(html);
+            zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+            resolve(html);
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      };
+
+      await scrape(url);
     });
-  
+  }
+
+  let crawler = async (url, depth) => {
+    urlMap.set(url, false);
+    while (depth >= 0) {
+      const temp = new Map(urlMap);
+
+      console.log(temp);
+      for (const [key, value] of temp) {
+        if (value == false) {
+          console.log("VALUE IS FALSE");
+          await get_html(key, depth, "images_folder");
+        }
+      }
+      depth = depth - 1;
+    }
+  };
+
+  async function getContent() {
+    try {
+      let depth = document.getElementById("depth_area").value;
+      const res = await load();
+      console.log("res");
+      console.log(res);
+      let folder_name = "images_folder";
+      zip.folder(folder_name);
+      for (const each of res) {
+        await crawler(each, depth);
+        // let html_new = await get_html(each, folder_name)
+        // console.log(html_new)
+      }
+
+      zip.generateAsync({ type: "blob" }).then(function (content) {
+        console.log(content);
+        saveAs(content, "pages.zip");
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  getContent();
+  event.preventDefault();
 });

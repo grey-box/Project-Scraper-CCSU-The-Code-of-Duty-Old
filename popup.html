@@ -1,9 +1,8 @@
 <!--
 	Some notes:
-
 -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 	<title>Grey-box Web Scraper</title>
@@ -11,54 +10,55 @@
 	<!-- Bootstrap CSS -->
 	<link href="css/bootstrap.min.css" rel="stylesheet">
   <script src="js/jquery-3.6.1.min.js"></script>
+
 </head>
 
-<body class="container py-2 px-3 bg-light">
+<body class="container py-2 px-3 bg-light" style="width: 500px">
 	<h1 class="text-center">Grey-Box Web Downloader</h1>
 
+
+	<div style="margin-bottom: 10px">
+		<label>Upload a txt file (containing one url per line)</label>
+		<input type="file" name="file" id="file" style="border: 1px black"/>
+	</div>
+
+
 	<form id="url-form" class="row row-cols-lg-auto g-3 align-items-center" action="#">
-		<div class="col-12 input-group-sm">
-			<label for="url">Starting URL</label>
-			<input type="url" name="url" class="form-control" placeholder="Enter URL">
+<!--		<div class="col-12 input-group-sm">-->
+<!--			<label>Starting URL</label>-->
+<!--			<input type="url" name="url" id="url" class="form-control" placeholder="Enter URL">-->
+<!--		</div>-->
+		<div>
+			<label>Or copy urls here</label>
+			<textarea type="text" name="text" id="text_area" class="form-control" placeholder="One url per line"></textarea>
 		</div>
 
 		<div class="col-12 input-group-sm">
-			<label for="depth">Depth</label>
-			<input type="number" name="depth" min="0" class="form-control" placeholder="Enter Depth">
+			<label> Crawl Depth</label>
+			<img src="images/info-circle.svg" title="The number of webpage links away from the scraped website">
+			<input type="range" name="depth" id="depth_area" min="0" max="5">
+			<p>Value: <span id="value"></span></p>
 		</div>
 
 		<div class="col-12 mb-2">
-			<button type="submit" class="btn btn-secondary btn-sm">Download</button>
+			<button class="btn btn-secondary btn-sm" id="btn">Download AS ZIP</button>
 		</div>
 	</form>
 
 	<br>
 
-	<form id="option-form" class="row row-cols-lg-auto g-3 align-items-center" action="#">
-		<div class="col-12">
-			<div class="form-check">
-				<label class="form-check-label" for="aszip">
-					<input class="form-check-input" name="aszip" type="checkbox">
-					Download as ZIP file
-				</label>
-			</div>
-		</div>
-
-		<div class="col-12">
-			<div class="form-check">
-				<label class="form-check-label" for="corsbypass">
-					<input class="form-check-input" name="corsbypass" type="checkbox">
-					Bypass CORS
-				</label>
-			</div>
-		</div>
-	</form>
 
 	<!-- Bootstrap JS -->
 	<script src="js/bootstrap.bundle.min.js"></script>
+	<script src="js/jquery-3.6.1.min.js"></script>
+	<script src="js/jszip.min.js"></script>
+	<script src="js/FileSaver.min.js"></script>
+	<script src="js/jszip-utils.js"></script>
 
 	<!-- Popup JS -->
 	<script defer src="js/popup.js"></script>
+
+
 </body>
 
 </html>
