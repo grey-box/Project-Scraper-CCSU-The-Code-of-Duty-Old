@@ -1,8 +1,8 @@
 {
-	"name": "Grey-box Web Scraper",
-	"description": "Download websites",
-	"version": "1.0",
-	"manifest_version": 3,
+  "name": "Grey-box Web Scraper",
+  "description": "Download websites",
+  "version": "1.0",
+  "manifest_version": 3,
 
 	"permissions": [
 		"tabs",
@@ -27,15 +27,15 @@
 		"<all_urls>"
 	],
 
-	"declarative_net_request": {
-		"rule_resources": [
-			{
-				"id": "cors_ruleset",
-				"enabled": true,
-				"path": "corsrules.json"
-			}
-		]
-	},
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "cors_ruleset",
+        "enabled": true,
+        "path": "corsrules.json"
+      }
+    ]
+  },
 
 	"background": {
 		"service_worker": "js/background.js"
