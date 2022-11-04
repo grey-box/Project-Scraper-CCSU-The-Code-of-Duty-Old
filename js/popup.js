@@ -1,29 +1,5 @@
 let urlform = document.getElementById("url-form");
-// let optform = document.getElementById("option-form");
-//
-//
-// document.addEventListener("DOMContentLoaded", () => {
-//     chrome.storage.local.get(
-//         {
-//             aszip: false,
-//             corsbypass: false,
-//         },
-//         (data) => {
-//             optform.corsbypass.checked = data.corsbypass;
-//             optform.aszip.checked = data.aszip;
-//         }
-//     );
-// });
-//
-// optform.corsbypass.addEventListener("change", (event) => {
-//     chrome.storage.local.set({corsbypass: Boolean(event.target.checked)});
-// });
-//
-// optform.aszip.addEventListener("change", (event) => {
-//     chrome.storage.local.set({aszip: Boolean(event.target.checked)});
-// });
 
-//Execute after submitting form (clicking the save button)
 
 var slider = document.getElementById("depth_area");
 var output = document.getElementById("value");
@@ -56,32 +32,26 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     return new Promise((resolve, reject) => {
       let selected = document.getElementById("file").files[0];
       if (selected != null) {
-        // console.log(selected);
         let reader = new FileReader();
         reader.addEventListener("loadend", () => {
           urls_file_content = reader.result.split(/\r\n|\n/);
           resolve(urls_file_content);
-          // console.log("in promise");
-          // console.log(urls_file_content);
         });
         reader.readAsText(selected);
       } else if (document.getElementById("text_area").value != null) {
         let text_lines = document.getElementById("text_area").value.split("\n");
-        // console.log(text_lines);
         resolve(text_lines);
       }
     });
   }
 
   let getData = (url) => {
-    // console.log("getData:", "Getting data from URL");
     return $.get(url);
   };
 
   function urlToPromise(url) {
     return new Promise(function (resolve, reject) {
       JSZipUtils.getBinaryContent(url, function (err, data) {
-        // console.log("JSZIPPER");
         if (err) {
           reject(err);
         } else {
@@ -115,7 +85,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     return element;
   };
 
-  async function get_html(url, depth, folderName) {
+  async function get_html(url, depth, imgfolderName, htmlfolderName) {
     urlMap.set(url, true);
     console.log(url);
     hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
@@ -158,7 +128,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
             image_name = image_name.replace(/[-/\\^$*+?()"'|[\]{}]/gs, "");
 
-            zip.file(folderName + "/" + image_name, urlToPromise(each), {
+            zip.file(imgfolderName + "/" + image_name, urlToPromise(each), {
               binary: true,
             });
             imgsMap.set(each, image_name);
@@ -177,9 +147,8 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             let temp = validURL(each);
 
             if (map.has(temp)) {
-              html = html.replace(reg2, "./" + folder + "/" + map.get(temp));
+              html = html.replace(reg2, "../" + folder + "/" + map.get(temp));
             }
-            // console.log("After", html);
           });
         }
       };
@@ -334,7 +303,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           replaceHTML(
             /(?<=\<img.*?src=")(.*?)(?=")/gs,
             imgsMap,
-            "images_folder"
+            imgfolderName
           );
 
           // Initiate function to get CSS links
@@ -353,7 +322,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
                 "CSS"
               );
 
-              zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+              zip.file(htmlfolderName+"/"+url.substr(url.lastIndexOf("/") + 1) + ".html", html);
               resolve(html);
             } catch (err) {
               console.log(err);
@@ -361,7 +330,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           } else {
             // console.log("return html");
             // console.log(html);
-            zip.file(url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+            zip.file(htmlfolderName+"/"+url.substr(url.lastIndexOf("/") + 1) + ".html", html);
             resolve(html);
           }
         } catch (err) {
@@ -374,15 +343,19 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   }
 
   let crawler = async (url, depth) => {
+    let index = depth
     urlMap.set(url, false);
     while (depth >= 0) {
       const temp = new Map(urlMap);
-
       // console.log(temp);
       for (const [key, value] of temp) {
         if (value == false) {
           console.log("VALUE IS FALSE");
-          await get_html(key, depth, "images_folder");
+          let img_folder_name = "image_folder_"+(index-depth)
+          let html_folder_name = "html_folder_"+(index-depth)
+          zip.folder(img_folder_name)
+          zip.folder(html_folder_name)
+          await get_html(key, depth, img_folder_name,html_folder_name);
         }
       }
       depth = depth - 1;
@@ -395,8 +368,8 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       const res = await load();
       console.log("res");
       console.log(res);
-      let folder_name = "images_folder";
-      zip.folder(folder_name);
+      //let folder_name = "images_folder";
+      //zip.folder(folder_name);
       for (const each of res) {
         await crawler(each, depth);
         // let html_new = await get_html(each, folder_name)
