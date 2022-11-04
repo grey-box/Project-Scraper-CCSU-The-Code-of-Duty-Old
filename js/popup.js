@@ -1,5 +1,29 @@
 let urlform = document.getElementById("url-form");
+// let optform = document.getElementById("option-form");
+//
+//
+// document.addEventListener("DOMContentLoaded", () => {
+//     chrome.storage.local.get(
+//         {
+//             aszip: false,
+//             corsbypass: false,
+//         },
+//         (data) => {
+//             optform.corsbypass.checked = data.corsbypass;
+//             optform.aszip.checked = data.aszip;
+//         }
+//     );
+// });
+//
+// optform.corsbypass.addEventListener("change", (event) => {
+//     chrome.storage.local.set({corsbypass: Boolean(event.target.checked)});
+// });
+//
+// optform.aszip.addEventListener("change", (event) => {
+//     chrome.storage.local.set({aszip: Boolean(event.target.checked)});
+// });
 
+//Execute after submitting form (clicking the save button)
 
 var slider = document.getElementById("depth_area");
 var output = document.getElementById("value");
@@ -17,10 +41,12 @@ let saveBtn = document.querySelectorAll(".btn-secondary");
 document.getElementById("btn").addEventListener("click", async (event) => {
   let zip = new JSZip();
   let html = null;
+  let PARSEDHTML = null;
   let urlMap = new Map();
   let imgsMap = new Map();
   let cssMap = new Map();
   let cssCount = 1;
+  let imgCount = 1;
 
   let hostname = null;
 
@@ -28,30 +54,48 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   //read from input file
   // console.log("read file");
 
+  function download(html) {
+    // Convert html into objectURL to use chrome.downloads
+    let blob = new Blob([html], { type: "text/html" });
+    objURL = URL.createObjectURL(blob);
+
+    // Download the url object
+    chrome.downloads.download({
+      url: objURL,
+      saveAs: true,
+    });
+  }
+
   function load() {
     return new Promise((resolve, reject) => {
       let selected = document.getElementById("file").files[0];
       if (selected != null) {
+        // console.log(selected);
         let reader = new FileReader();
         reader.addEventListener("loadend", () => {
           urls_file_content = reader.result.split(/\r\n|\n/);
           resolve(urls_file_content);
+          // console.log("in promise");
+          // console.log(urls_file_content);
         });
         reader.readAsText(selected);
       } else if (document.getElementById("text_area").value != null) {
         let text_lines = document.getElementById("text_area").value.split("\n");
+        // console.log(text_lines);
         resolve(text_lines);
       }
     });
   }
 
   let getData = (url) => {
+    // console.log("getData:", "Getting data from URL");
     return $.get(url);
   };
 
   function urlToPromise(url) {
     return new Promise(function (resolve, reject) {
       JSZipUtils.getBinaryContent(url, function (err, data) {
+        // console.log("JSZIPPER");
         if (err) {
           reject(err);
         } else {
@@ -62,7 +106,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   }
 
   function escapeRegExp(s) {
-    return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    return s.replace(/[-/&\\^$*+?.()|[\]{}]/g, "\\$&");
   }
 
   let validURL = (url) => {
@@ -85,7 +129,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     return element;
   };
 
-  async function get_html(url, depth, imgfolderName, htmlfolderName) {
+  async function get_html(url, depth, folderName) {
     urlMap.set(url, true);
     console.log(url);
     hostname = url.match(/(?<=(http|https):\/\/)(\S+?)(?=\/)/)[0];
@@ -93,116 +137,65 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     return new Promise(async (resolve, reject) => {
       let css = [];
       let cssLinks = [];
+      let imgLinks = [];
 
       const get_imgs = async (url) => {
-        try {
-          // Wait for function to fulfill promise then set HTML data to
-          // variable
-          let imgLinks = [];
+        const imgElements = $(PARSEDHTML).find("img");
+        imgElements.each(function () {
+          let src = $(this).attr("src");
 
-          const PARSEDHTML = $.parseHTML(html);
-          let imgElements = $(PARSEDHTML).find("img");
+          let element = validURL(src);
 
-          imgElements.each(function () {
-            let src = $(this).attr("src");
-
-            let element = validURL(src);
-
-            imgLinks.push(element);
-            if (!imgsMap.has(element)) {
-              imgsMap.set(element, "");
-            }
-          });
-          return imgLinks;
-        } catch (e) {
-          console.error(e);
-        }
-      };
-
-      let download_imgs = (imgs) => {
-        imgs.forEach((each) => {
-          if (imgsMap.get(each) == "") {
-            let image_name = decodeURIComponent(
-              each.toString().substr(each.lastIndexOf("/") + 1)
+          imgLinks.push(src);
+          if (!imgsMap.has(src)) {
+            let img_name = decodeURIComponent(
+              src.substr(src.lastIndexOf("/") + 1)
             );
-
-            image_name = image_name.replace(/[-/\\^$*+?()"'|[\]{}]/gs, "");
-
-            zip.file(imgfolderName + "/" + image_name, urlToPromise(each), {
-              binary: true,
-            });
-            imgsMap.set(each, image_name);
+            img_name = img_name.replace(/[-/\\^$*+?()"'|[\]{}]/gs, "");
+            imgsMap.set(src, img_name);
+            // imgCount++
           }
         });
       };
 
-      let replaceHTML = (reg1, map, folder) => {
-        // console.log("Before", html);
-        const content = html.match(reg1);
+      let download_imgs = () => {
+        imgLinks.forEach((each) => {
+          let img_name = imgsMap.get(each);
+          let imgURL = validURL(each);
 
-        if (content != null && content.length > 0) {
-          content.forEach((each) => {
-            const reg2 = new RegExp(escapeRegExp(each), "gs");
-
-            let temp = validURL(each);
-
-            if (map.has(temp)) {
-              html = html.replace(reg2, "../" + folder + "/" + map.get(temp));
-            }
+          zip.file("images_folder/" + img_name, urlToPromise(imgURL), {
+            binary: true,
           });
-        }
+          let regexer = new RegExp(escapeRegExp(each), "gs");
+          html = html.replace(regexer, "./images_folder/" + img_name);
+        });
       };
 
-      // let replace_imgs = () => {
-      //   const reg1 = /(?<=\<img.*?src=)(".*?")/gs;
-      //   const reg3 = /(?<=\<img.*?srcset=")(.*?)(?=")/gs;
-
-      //   const imgSRC = html.match(reg1);
-
-      //   html = html.replace(reg3, "");
-
-      //   if (imgSRC != null && imgSRC.length > 1) {
-      //     console.log(imgSRC);
-      //     imgSRC.forEach((each, i) => {
-      //       try {
-      //         let temp = each.toString().substr(each.lastIndexOf("/") + 1);
-
-      //         const regex = new RegExp(each, "gs");
-
-      //         html = html.replace(regex, '"./images_folder/' + temp + '"');
-      //       } catch (error) {
-      //         console.log(error);
-      //       }
-      //     });
-      //   }
-      // };
-
       let getCSSLinks = (html) => {
-        PARSEDHTML = $.parseHTML(html);
-        linkElements = $(PARSEDHTML).filter("link[rel=stylesheet]");
+        const linkElements = $(PARSEDHTML).filter("link[rel=stylesheet]");
         linkElements.each(function () {
           let href = $(this).attr("href");
-          let element = validURL(href);
+          href = href.replace(/&/gs, "&amp;");
 
-          cssLinks.push(element);
-          if (!cssMap.has(element)) {
-            cssMap.set(element, "");
+          cssLinks.push(href);
+
+          if (!cssMap.has(href)) {
+            let css_name = "css" + cssCount + ".css";
+            cssMap.set(href, css_name);
+            cssCount++;
           }
         });
       };
 
       let getCSS = async () => {
         cssLinks.forEach(async (each) => {
-          if (cssMap.get(each) == "") {
-            // let cssText = await getData(each);
-            let css_name = "css" + cssCount + ".css";
-            cssCount++;
-
-            zip.file("CSS/" + css_name, urlToPromise(each), {
-              binary: true,
-            });
-            cssMap.set(each, css_name);
-          }
+          const cssURL = validURL(each);
+          const css_name = cssMap.get(each);
+          zip.file("CSS/" + css_name, urlToPromise(cssURL), {
+            binary: true,
+          });
+          let regexer = new RegExp(escapeRegExp(each), "gs");
+          html = html.replace(regexer, "./CSS/" + css_name);
         });
 
         // for (let index = 0; index < cssLinks.length; index++) {
@@ -281,11 +274,11 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           // Wait for function to fulfill promise then set HTML data to
           // variable
           html = await getData(url);
+          PARSEDHTML = $.parseHTML(html);
 
           // This allows the scraper to continue to gather links on the page
           // if depth is greater than 0
           if (depth > 0) {
-            let PARSEDHTML = $.parseHTML(html);
             let aElements = $(PARSEDHTML).find("a[href]");
             aElements.each(function () {
               urlCheck(this);
@@ -298,17 +291,10 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           download_imgs(imgs);
           // Remove srcset from all <img> tags
           html = html.replace(/(?<=\<img.*?srcset=")(.*?)(?=")/gs, "");
-          // replace the src attribute of <img> tags to a the downloaded
-          // image directory
-          replaceHTML(
-            /(?<=\<img.*?src=")(.*?)(?=")/gs,
-            imgsMap,
-            imgfolderName
-          );
 
           // Initiate function to get CSS links
           getCSSLinks(html);
-
+          let html_name = $(PARSEDHTML).filter("title").text();
           // For every CSS link gets its CSS and append to HTML if any
           if (cssLinks.length > 0) {
             try {
@@ -316,21 +302,13 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
               //replaceCSS();
 
-              replaceHTML(
-                /(?<=\<link.*?href=("|'))(.*?)(?=("|'))/gs,
-                cssMap,
-                "CSS"
-              );
-
-              zip.file(htmlfolderName+"/"+url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+              zip.file(html_name + ".html", html);
               resolve(html);
             } catch (err) {
               console.log(err);
             }
           } else {
-            // console.log("return html");
-            // console.log(html);
-            zip.file(htmlfolderName+"/"+url.substr(url.lastIndexOf("/") + 1) + ".html", html);
+            zip.file(html_name + ".html", html);
             resolve(html);
           }
         } catch (err) {
@@ -343,19 +321,15 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   }
 
   let crawler = async (url, depth) => {
-    let index = depth
     urlMap.set(url, false);
     while (depth >= 0) {
       const temp = new Map(urlMap);
+
       // console.log(temp);
       for (const [key, value] of temp) {
         if (value == false) {
           console.log("VALUE IS FALSE");
-          let img_folder_name = "image_folder_"+(index-depth)
-          let html_folder_name = "html_folder_"+(index-depth)
-          zip.folder(img_folder_name)
-          zip.folder(html_folder_name)
-          await get_html(key, depth, img_folder_name,html_folder_name);
+          await get_html(key, depth, "images_folder");
         }
       }
       depth = depth - 1;
@@ -368,8 +342,8 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       const res = await load();
       console.log("res");
       console.log(res);
-      //let folder_name = "images_folder";
-      //zip.folder(folder_name);
+      let folder_name = "images_folder";
+      zip.folder(folder_name);
       for (const each of res) {
         await crawler(each, depth);
         // let html_new = await get_html(each, folder_name)
