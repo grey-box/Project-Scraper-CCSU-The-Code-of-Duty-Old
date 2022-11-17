@@ -27,6 +27,7 @@ let urlform = document.getElementById("url-form");
 
 var slider = document.getElementById("depth_area");
 var output = document.getElementById("value");
+var toggle1 = $("#cssMerge");
 output.innerHTML = slider.value;
 
 slider.oninput = function () {
@@ -106,7 +107,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
   }
 
   function escapeRegExp(s) {
-    return s.replace(/[-/&\\^$*+?.()|[\]{}]/g, "\\$&");
+    return s.replace(/[-/&\/\\^$*+?.()|[\]{}]/g, "\\$&");
   }
 
   let validURL = (url) => {
@@ -151,24 +152,61 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             let img_name = decodeURIComponent(
               src.substr(src.lastIndexOf("/") + 1)
             );
-            img_name = img_name.replace(/[-/\\^$*+?()"'|[\]{}]/gs, "");
+            img_name = img_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "");
             imgsMap.set(src, img_name);
             // imgCount++
           }
         });
       };
 
-      let download_imgs = () => {
-        imgLinks.forEach((each) => {
-          let img_name = imgsMap.get(each);
-          let imgURL = validURL(each);
+      let base64_array = [];
+      let download_imgs = async () => {
+        const checker = $("#imgMerge").is(":checked");
 
-          zip.file(imgfolderName + "/" + img_name, urlToPromise(imgURL), {
-            binary: true,
-          });
-          let regexer = new RegExp(escapeRegExp(each), "gs");
-          html = html.replace(regexer, "../../" + imgfolderName + "/" + img_name);
-        });
+        for (let i = 0; i < imgLinks.length; i++) {
+          let img_name = imgsMap.get(imgLinks[i]);
+          let imgURL = validURL(imgLinks[i]);
+          let regexer = new RegExp(escapeRegExp(imgLinks[i]), "gs");
+
+          if (checker) {
+            const toBase64 = (url) =>
+              fetch(imgURL)
+                .then((res) => res.blob())
+                .then(
+                  (blob) =>
+                    new Promise((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve(reader.result);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(
+                        new Blob([blob], { type: blob.type })
+                      );
+                    })
+                );
+            await toBase64(imgURL).then((base64) => {
+              console.log(base64);
+              html = html.replace(regexer, base64);
+              //base64_array.push(reader.result);
+            });
+            // let test = await img.blob();
+
+            // const reader = new FileReader();
+            // reader.readAsDataURL(new Blob([test], { type: test.type }));
+            // reader.onloadend = function () {};
+          } else {
+            zip.file(imgfolderName + "/" + img_name, urlToPromise(imgURL), {
+              binary: true,
+            });
+
+            console.log("REPLACING");
+            html = html.replace(
+              regexer,
+              "../../" + imgfolderName + "/" + img_name
+            );
+          }
+        }
+
+        // imgLinks.forEach(async (each) => {});
       };
 
       let getCSSLinks = (html) => {
@@ -188,41 +226,40 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       };
 
       let getCSS = async () => {
-        cssLinks.forEach(async (each) => {
-          const cssURL = validURL(each);
-          const css_name = cssMap.get(each);
-          zip.file("CSS/" + css_name, urlToPromise(cssURL), {
-            binary: true,
-          });
-          let regexer = new RegExp(escapeRegExp(each), "gs");
-          html = html.replace(regexer, "../../CSS/" + css_name);
-        });
+        if (toggle1.is(":checked")) {
+          for (let index = 0; index < cssLinks.length; index++) {
+            try {
+              // Waits for the function to fulfil promise then set data to cssText
+              let cssText = await getData(validURL(cssLinks[index]));
+              // Wrap data into <sytle> tags to append to html
+              cssElement = "<style>" + cssText + "</style> ";
+              // css[index] = cssElement;
+              html = html.replace(/<link.*?rel="stylesheet".*?>/, cssElement);
+            } catch (err) {
+              console.log(err);
+              // css[index] = "";
+            }
+          }
+        } else {
+          cssLinks.forEach(async (each) => {
+            const cssURL = validURL(each);
+            const css_name = cssMap.get(each);
 
-        // for (let index = 0; index < cssLinks.length; index++) {
-        //   try {
-        //     // Waits for the function to fulfil promise then set data to cssText
-        //     let cssText = await getData(cssLinks[index]);
-        //     //console.log(cssText)
-        //     // Wrap data into <sytle> tags to append to html
-        //     cssElement = "<style>" + cssText + "</style> ";
-        //     console.log("getCSS (try):", "Assigning");
-        //     css[index] = cssElement;
-        //   } catch (err) {
-        //     console.log(err);
-        //     css[index] = "";
-        //   }
-        // }
+            zip.file("CSS/" + css_name, urlToPromise(cssURL), {
+              binary: true,
+            });
+            let regexer = new RegExp(escapeRegExp(each), "gs");
+            html = html.replace(regexer, "../../CSS/" + css_name);
+          });
+        }
       };
 
       let replaceCSS = () => {
-        //console.log(css)
+        console.log(css);
         cssLinks.forEach((cssLink, index) => {
           //Replace previous <link> tag with new css <style> tag
           // console.log("replaceCSS:", "Replacing");
-          html = html.replace(
-            /(\<link) ?(\S*) ?(\S*) ?(rel\="stylesheet") ?(\S*) ?(\S*)>/,
-            css[index]
-          );
+          html = html.replace(/<link.*?rel="stylesheet".*?>/, css[index]);
         });
       };
 
@@ -288,7 +325,8 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           // Grab image links and store them into "imgs" variable
           const imgs = await get_imgs(url);
           // Initiate function to download image links in "imgs"
-          download_imgs(imgs);
+          await download_imgs(imgs);
+          console.log("DONE");
           // Remove srcset from all <img> tags
           html = html.replace(/(?<=\<img.*?srcset=")(.*?)(?=")/gs, "");
 
@@ -300,15 +338,19 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             try {
               await getCSS();
 
-              //replaceCSS();
+              // if (toggle1.is(":checked")) {
+              //   replaceCSS();
+              // }
 
-              zip.file(htmlfolderName+"/"+html_name + ".html", html);
+              // console.log(html);
+
+              zip.file(htmlfolderName + "/" + html_name + ".html", html);
               resolve(html);
             } catch (err) {
               console.log(err);
             }
           } else {
-            zip.file(htmlfolderName+"/"+html_name + ".html", html);
+            zip.file(htmlfolderName + "/" + html_name + ".html", html);
             resolve(html);
           }
         } catch (err) {
@@ -320,12 +362,12 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     });
   }
 
-  let crawler = async (url, depth,i) => {
-    let depth_index = depth
-    let url_folder_name = "url_folder_" + i
+  let crawler = async (url, depth, i) => {
+    let depth_index = depth;
+    let url_folder_name = "url_folder_" + i;
     //let url_image_folder = url_folder_name + "/"+"image_folder"
     //let url_html_folder = url_folder_name + "/"+"html_folder"
-    zip.folder(url_folder_name)
+    zip.folder(url_folder_name);
     //zip.folder(url_image_folder)
     //zip.folder(url_html_folder)
     urlMap.set(url, false);
@@ -337,14 +379,14 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         if (value == false) {
           console.log("VALUE IS FALSE");
           //let depth_folder_name = "depth_folder_"+(depth_index-depth)
-          let img_folder_name = "image_folder"
-          let html_folder_name = "html_folder"
-          let imgFolderPath = url_folder_name+"/"+img_folder_name
+          let img_folder_name = "image_folder";
+          let html_folder_name = "html_folder";
+          let imgFolderPath = url_folder_name + "/" + img_folder_name;
           //url0/image/
-          let htmlFolderPath = url_folder_name+"/"+html_folder_name
-          zip.folder(imgFolderPath)
-          zip.folder(htmlFolderPath)
-          await get_html(key, depth, imgFolderPath,htmlFolderPath);
+          let htmlFolderPath = url_folder_name + "/" + html_folder_name;
+          zip.folder(imgFolderPath);
+          zip.folder(htmlFolderPath);
+          await get_html(key, depth, imgFolderPath, htmlFolderPath);
         }
       }
       depth = depth - 1;
@@ -361,7 +403,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       //zip.folder(folder_name);
       for (const each of res) {
         const i = res.indexOf(each);
-        await crawler(each, depth,i);
+        await crawler(each, depth, i);
         // let html_new = await get_html(each, folder_name)
         // console.log(html_new)
       }
