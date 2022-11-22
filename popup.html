@@ -39,6 +39,30 @@
 			<input type="range"  class="form-range" name="depth" id="depth_area" min="0" max="5">
 			<p>Value: <span id="value"></span></p>
 		</div>
+		
+		<div>
+			<h4>Customize Download Option</h4>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="cssMerge">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit CSS</label>
+				<img src="images/info-circle.svg" title="Download without the layout of the website(color, font, etc.)">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="imgMerge">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit Image</label>
+				<img src="images/info-circle.svg" title="Including Images on the website">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="vidoeMerge">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit Video</label>
+				<img src="images/info-circle.svg" title="The number of webpage links away from the scraped website">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="domainOnly">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Limit crawler to stay with in the domain of the webpage</label>
+				<img src="images/info-circle.svg" title="Only downloading the webpage">
+			</div>
+		</div>
 
 		<div class="col-12 mb-2">
 			<button class="btn btn-secondary btn-sm" id="btn">Download AS ZIP</button>
