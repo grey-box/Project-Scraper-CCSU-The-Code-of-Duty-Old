@@ -27,7 +27,12 @@ let urlform = document.getElementById("url-form");
 
 var slider = document.getElementById("depth_area");
 var output = document.getElementById("value");
-var toggle1 = $("#cssMerge");
+var cssMerge = $("#cssMerge");
+var imgMerge = $("#imgMerge");
+var cssOmit = $("#cssOmit");
+var imgOmit = $("#imgOmit");
+var vidOmit = $("#vidOmit");
+var domainOnly = $("#imgMerge");
 output.innerHTML = slider.value;
 
 slider.oninput = function () {
@@ -161,14 +166,14 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
       let base64_array = [];
       let download_imgs = async () => {
-        const checker = $("#imgMerge").is(":checked");
+        // const checker = $("#imgMerge").is(":checked");
 
         for (let i = 0; i < imgLinks.length; i++) {
           let img_name = imgsMap.get(imgLinks[i]);
           let imgURL = validURL(imgLinks[i]);
           let regexer = new RegExp(escapeRegExp(imgLinks[i]), "gs");
 
-          if (checker) {
+          if (imgMerge.is(":checked")) {
             const toBase64 = (url) =>
               fetch(imgURL)
                 .then((res) => res.blob())
@@ -226,7 +231,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       };
 
       let getCSS = async () => {
-        if (toggle1.is(":checked")) {
+        if (cssMerge.is(":checked")) {
           for (let index = 0; index < cssLinks.length; index++) {
             try {
               // Waits for the function to fulfil promise then set data to cssText
@@ -300,7 +305,11 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             return true;
           });
 
-          if (checks < 1 && url.search("https://" + hostname) >= 0) {
+          if (
+            domainOnly.is(":checked") &&
+            checks < 1 &&
+            url.search("https://" + hostname) >= 0
+          ) {
             urlMap.set(url, false);
           }
         }
@@ -322,27 +331,25 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             });
           }
 
-          // Grab image links and store them into "imgs" variable
-          const imgs = await get_imgs(url);
-          // Initiate function to download image links in "imgs"
-          await download_imgs(imgs);
-          console.log("DONE");
-          // Remove srcset from all <img> tags
-          html = html.replace(/(?<=\<img.*?srcset=")(.*?)(?=")/gs, "");
+          if (!imgOmit.is(":checked")) {
+            // Grab image links and store them into "imgs" variable
+            const imgs = await get_imgs(url);
+            // Initiate function to download image links in "imgs"
+            await download_imgs(imgs);
+            // Remove srcset from all <img> tags
+            html = html.replace(/(?<=\<img.*?srcset=")(.*?)(?=")/gs, "");
+          }
 
           // Initiate function to get CSS links
-          getCSSLinks(html);
+          if (!cssOmit.is(":checked")) {
+            getCSSLinks(html);
+          }
+
           let html_name = $(PARSEDHTML).filter("title").text();
           // For every CSS link gets its CSS and append to HTML if any
           if (cssLinks.length > 0) {
             try {
               await getCSS();
-
-              // if (toggle1.is(":checked")) {
-              //   replaceCSS();
-              // }
-
-              // console.log(html);
 
               zip.file(htmlfolderName + "/" + html_name + ".html", html);
               resolve(html);

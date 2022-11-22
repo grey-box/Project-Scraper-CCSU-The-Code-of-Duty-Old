@@ -38,17 +38,41 @@
 			<div class="form-check form-switch">
 				<input class="form-check-input" type="checkbox" role="switch" id="cssMerge">
 				<label class="form-check-label" for="flexSwitchCheckDefault">Merge CSS with HTML</label>
+				<img src="images/info-circle.svg" title="Combines the stylesheet that determines the layout of the page with the HTML so they are within the same file">
 			</div>
 			<div class="form-check form-switch">
 				<input class="form-check-input" type="checkbox" role="switch" id="imgMerge">
 				<label class="form-check-label" for="flexSwitchCheckDefault">Merge Images with HTML</label>
+				<img src="images/info-circle.svg" title="Combines the images with the HTML so they are within the same file">
+			</div>
+
+			<h4>Options</h4>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="cssOmit">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit CSS</label>
+				<img src="images/info-circle.svg" title="Download without the layout of the website(color, font, etc.)">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="imgOmit">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit Image</label>
+				<img src="images/info-circle.svg" title="Skip image content while grabing webpage resources">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="vidOmit" disabled>
+				<label class="form-check-label" for="flexSwitchCheckDefault">Omit Video</label>
+				<img src="images/info-circle.svg" title="Skip video content while grabing webpage resources">
+			</div>
+			<div class="form-check form-switch">
+				<input class="form-check-input" type="checkbox" role="switch" id="domainOnly">
+				<label class="form-check-label" for="flexSwitchCheckDefault">Limit to hostname of the webpage</label>
+				<img src="images/info-circle.svg" title="Links outside of the webpage hostname will not be scraped">
 			</div>
 		
 		</div>
 
 		<div class="col-12 input-group-sm">
 			<label> Crawl Depth</label>
-			<img src="images/info-circle.svg" title="The number of webpage links away from the scraped website">
+			<img src="images/info-circle.svg" title="Determines how deep the extension will scrape. EX: Depth of 1 downloads all the links of the initial link given">
 			<input type="range"  class="form-range" name="depth" id="depth_area" value="0" min="0" max="5">
 			<p>Value: <span id="value"></span></p>
 		</div>
