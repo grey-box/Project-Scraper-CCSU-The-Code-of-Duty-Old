@@ -346,6 +346,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           }
 
           let html_name = $(PARSEDHTML).filter("title").text();
+          html_name = html_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "")
           // For every CSS link gets its CSS and append to HTML if any
           if (cssLinks.length > 0) {
             try {
