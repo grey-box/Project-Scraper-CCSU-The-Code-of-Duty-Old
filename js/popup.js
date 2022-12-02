@@ -32,7 +32,7 @@ var imgMerge = $("#imgMerge");
 var cssOmit = $("#cssOmit");
 var imgOmit = $("#imgOmit");
 var vidOmit = $("#vidOmit");
-var domainOnly = $("#imgMerge");
+var domainOnly = $("#domainOnly");
 output.innerHTML = slider.value;
 
 slider.oninput = function () {
@@ -191,14 +191,13 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             await toBase64(imgURL).then((base64) => {
               console.log(base64);
               html = html.replace(regexer, base64);
-              //base64_array.push(reader.result);
             });
-            // let test = await img.blob();
-
-            // const reader = new FileReader();
-            // reader.readAsDataURL(new Blob([test], { type: test.type }));
-            // reader.onloadend = function () {};
+            
           } else {
+            // fetch(imgURL, { method: "HEAD" })
+            //   .then((response) => response.headers.get("Content-Type"))
+            //   .then((type) => console.log(type));
+
             zip.file(imgfolderName + "/" + img_name, urlToPromise(imgURL), {
               binary: true,
             });
@@ -307,9 +306,12 @@ document.getElementById("btn").addEventListener("click", async (event) => {
 
           if (
             domainOnly.is(":checked") &&
-            checks < 1 &&
-            url.search("https://" + hostname) >= 0
+            url.search("https://" + hostname) == -1
           ) {
+            checks++;
+          }
+
+          if (checks < 1) {
             urlMap.set(url, false);
           }
         }
@@ -346,7 +348,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           }
 
           let html_name = $(PARSEDHTML).filter("title").text();
-          html_name = html_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "")
+          html_name = html_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "");
           // For every CSS link gets its CSS and append to HTML if any
           if (cssLinks.length > 0) {
             try {
