@@ -39,6 +39,7 @@ slider.oninput = function () {
   if (slider.value > 2) {
     window.confirm("Crawling may take longer if depth value is greater than 2");
   }
+
   output.innerHTML = this.value;
 };
 
@@ -144,6 +145,18 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       let css = [];
       let cssLinks = [];
       let imgLinks = [];
+      const imgExt = [
+        "webp",
+        "gifs",
+        "jpg",
+        "jpeg",
+        "png",
+        "tiff",
+        "bitmap",
+        "svg",
+        "eps",
+        "raw",
+      ];
 
       const get_imgs = async (url) => {
         const imgElements = $(PARSEDHTML).find("img");
@@ -164,7 +177,6 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         });
       };
 
-      let base64_array = [];
       let download_imgs = async () => {
         // const checker = $("#imgMerge").is(":checked");
 
@@ -172,6 +184,21 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           let img_name = imgsMap.get(imgLinks[i]);
           let imgURL = validURL(imgLinks[i]);
           let regexer = new RegExp(escapeRegExp(imgLinks[i]), "gs");
+
+          if (
+            !imgExt.includes(img_name.substr(img_name.lastIndexOf(".") + 1))
+          ) {
+            await fetch(imgURL, { method: "HEAD" })
+              .then((response) => response.headers.get("Content-Type"))
+              .then((type) => {
+                let start = type.indexOf("/") + 1;
+                let end =
+                  type.length < 12 ? type.length : type.lastIndexOf("+");
+                let exe = type.substring(start, end);
+                img_name = img_name + "." + exe;
+                imgsMap.set(imgLinks[i], img_name);
+              });
+          }
 
           if (imgMerge.is(":checked")) {
             const toBase64 = (url) =>
@@ -192,7 +219,6 @@ document.getElementById("btn").addEventListener("click", async (event) => {
               console.log(base64);
               html = html.replace(regexer, base64);
             });
-            
           } else {
             // fetch(imgURL, { method: "HEAD" })
             //   .then((response) => response.headers.get("Content-Type"))
