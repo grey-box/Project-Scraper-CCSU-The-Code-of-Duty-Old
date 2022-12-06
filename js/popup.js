@@ -94,9 +94,15 @@ document.getElementById("btn").addEventListener("click", async (event) => {
     });
   }
 
-  let getData = (url) => {
+  let getData = async (url) => {
     // console.log("getData:", "Getting data from URL");
-    return $.get(url);
+    return await fetch(url)
+      .then(function (res) {
+        return res.text();
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
   };
 
   function urlToPromise(url) {
@@ -161,18 +167,17 @@ document.getElementById("btn").addEventListener("click", async (event) => {
       const get_imgs = async (url) => {
         const imgElements = $(PARSEDHTML).find("img");
         imgElements.each(function () {
-          let src = $(this).attr("src");
-
-          let element = validURL(src);
-
-          imgLinks.push(src);
-          if (!imgsMap.has(src)) {
-            let img_name = decodeURIComponent(
-              src.substr(src.lastIndexOf("/") + 1)
-            );
-            img_name = img_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "");
-            imgsMap.set(src, img_name);
-            // imgCount++
+          if ($(this).attr("src") != "") {
+            let src = $(this).attr("src");
+            imgLinks.push(src);
+            if (!imgsMap.has(src)) {
+              let img_name = decodeURIComponent(
+                src.substr(src.lastIndexOf("/") + 1)
+              );
+              img_name = img_name.replace(/[-/&\\^$*+?()"'|[\]{}]/gs, "");
+              imgsMap.set(src, img_name);
+              // imgCount++
+            }
           }
         });
       };
@@ -184,6 +189,7 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           let img_name = imgsMap.get(imgLinks[i]);
           let imgURL = validURL(imgLinks[i]);
           let regexer = new RegExp(escapeRegExp(imgLinks[i]), "gs");
+          console.log(img_name, imgURL);
 
           if (
             !imgExt.includes(img_name.substr(img_name.lastIndexOf(".") + 1))
@@ -191,12 +197,17 @@ document.getElementById("btn").addEventListener("click", async (event) => {
             await fetch(imgURL, { method: "HEAD" })
               .then((response) => response.headers.get("Content-Type"))
               .then((type) => {
-                let start = type.indexOf("/") + 1;
-                let end =
-                  type.length < 12 ? type.length : type.lastIndexOf("+");
-                let exe = type.substring(start, end);
-                img_name = img_name + "." + exe;
-                imgsMap.set(imgLinks[i], img_name);
+                if (type != null) {
+                  let start = type.indexOf("/") + 1;
+                  let end =
+                    type.length < 12 ? type.length : type.lastIndexOf("+");
+                  let exe = type.substring(start, end);
+                  img_name = img_name + "." + exe;
+                  imgsMap.set(imgLinks[i], img_name);
+                }
+              })
+              .catch((error) => {
+                console.log(error);
               });
           }
 
@@ -394,7 +405,11 @@ document.getElementById("btn").addEventListener("click", async (event) => {
         }
       };
 
-      await scrape(url);
+      try {
+        await scrape(url);
+      } catch (error) {
+        console.log(error);
+      }
     });
   }
 
@@ -422,7 +437,12 @@ document.getElementById("btn").addEventListener("click", async (event) => {
           let htmlFolderPath = url_folder_name + "/" + html_folder_name;
           zip.folder(imgFolderPath);
           zip.folder(htmlFolderPath);
-          await get_html(key, depth, imgFolderPath, htmlFolderPath);
+          try {
+            await get_html(key, depth, imgFolderPath, htmlFolderPath);
+          } catch (error) {
+            console.log(error);
+          }
+          console.log("test");
         }
       }
       depth = depth - 1;
