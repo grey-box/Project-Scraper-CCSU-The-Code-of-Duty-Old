@@ -1,3 +1,6 @@
+### Run the Web Crawler
+Unzip the folder -> Open Google Chrome -> Manage Extensions -> Load Unpacked -> open the same level as "_metadata" -> success
+
 ### Instructions
 
 click "choose file" button: 
