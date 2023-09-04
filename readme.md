@@ -13,3 +13,6 @@ Or:
 Copy urls into textarea, one url each line
 
 Result: save all the images to a folder and each page html in one zip file
+
+Archived
+
